@@ -10,6 +10,7 @@
     <RepositoryUrl>https://github.com/Borlay/Borlay.Handling</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>runtime interface implementation</PackageTags>
+    <PackageLicenseUrl>https://github.com/Borlay/Borlay.Handling/blob/master/LICENSE.md</PackageLicenseUrl>
   </PropertyGroup>
 
   <ItemGroup>
