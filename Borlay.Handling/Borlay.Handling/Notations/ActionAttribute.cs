@@ -6,7 +6,7 @@ using System.Text;
 namespace Borlay.Handling.Notations
 {
     [AttributeUsage(AttributeTargets.Method)]
-    public abstract class ActionAttribute : Attribute, IActionSolve
+    public abstract class ActionAttribute : Attribute, IActionMeta
     {
         public bool CanBeCached { get; set; } = false;
 

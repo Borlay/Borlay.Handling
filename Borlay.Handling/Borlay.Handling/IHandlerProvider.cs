@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Borlay.Handling
 {
-    public interface IHandlerProvider //: IActionConverterProvider
+    public interface IHandlerProvider
     {
         bool TryGetHandler(object scopeId, object actionId, Type[] parameterTypes, out IHandler handler);
 

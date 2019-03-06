@@ -27,19 +27,6 @@ namespace Borlay.Handling
             this.Resolver = new Resolver(Resolver);
         }
 
-        //public IIdConverter GetActionConverter(byte type)
-        //{
-        //    if (actionSolves.TryGetValue(type, out var actionIdSolve))
-        //        return actionIdSolve;
-
-        //    throw new KeyNotFoundException($"Action converter for action type '{type}' not found");
-        //}
-
-        //public bool TryGetActionConverter(byte type, out IIdConverter actionConverter)
-        //{
-        //    return actionSolves.TryGetValue(type, out actionConverter);
-        //}
-
         public IHandler GetHandler(object scopeId, object actionId, params Type[] parameterTypes)
         {
             if (TryGetHandler(scopeId, actionId, parameterTypes, out var handler))
