@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.168
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Borlay.Handling", "Borlay.Handling\Borlay.Handling.csproj", "{575489D9-53F4-401F-B1F6-6582ED349157}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Borlay.Handling", "Borlay.Handling\Borlay.Handling.csproj", "{575489D9-53F4-401F-B1F6-6582ED349157}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Borlay.Handling.Tests", "Borlay.Handling.Tests\Borlay.Handling.Tests.csproj", "{2CE2DE6C-62AB-4DC0-9C77-DE7039920075}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{575489D9-53F4-401F-B1F6-6582ED349157}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{575489D9-53F4-401F-B1F6-6582ED349157}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{575489D9-53F4-401F-B1F6-6582ED349157}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CE2DE6C-62AB-4DC0-9C77-DE7039920075}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CE2DE6C-62AB-4DC0-9C77-DE7039920075}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CE2DE6C-62AB-4DC0-9C77-DE7039920075}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CE2DE6C-62AB-4DC0-9C77-DE7039920075}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

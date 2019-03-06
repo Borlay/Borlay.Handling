@@ -2,6 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard1.6</TargetFramework>
+    <Authors>Paulius Kanoverskis</Authors>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>Lightweight runtime interface implementation or handling for .NET standard</Description>
+    <Copyright>Paulius Kanoverskis</Copyright>
+    <PackageProjectUrl>http://borlay.org</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Borlay/Borlay.Handling</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>runtime interface implementation</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
