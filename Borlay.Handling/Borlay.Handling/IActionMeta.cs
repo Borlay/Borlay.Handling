@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Borlay.Arrays;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -11,5 +12,7 @@ namespace Borlay.Handling
         bool CacheReceivedResponse { get; }
 
         bool CacheSendedResponse { get; }
+
+        object GetActionId();
     }
 }

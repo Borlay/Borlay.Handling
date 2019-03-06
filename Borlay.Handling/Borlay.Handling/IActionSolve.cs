@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Borlay.Handling
 {
-    public interface IActionSolve : IActionMeta, IActionConverter
+    public interface IActionSolve : IActionMeta//, IIdConverter
     {
     }
 }

@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace Borlay.Handling
 {
-    public interface IHandlerProvider : IActionConverterProvider
+    public interface IHandlerProvider //: IActionConverterProvider
     {
-        bool TryGetHandler(string actionId, Type[] types, out IHandler handler);
+        bool TryGetHandler(object scopeId, object actionId, Type[] parameterTypes, out IHandler handler);
 
-        IHandler GetHandler(string actionId, params Type[] types);
+        IHandler GetHandler(object scopeId, object actionId, params Type[] parameterTypes);
     }
 }

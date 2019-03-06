@@ -13,8 +13,8 @@ namespace Borlay.Handling
     {
         private readonly SemaphoreSlim slim;
 
-        public SThreadHandler(IResolver resolver, Type handlerType, MethodInfo method, SemaphoreSlim slim, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
-            : base(resolver, handlerType, method, classRoles, methodRoles)
+        public SThreadHandler(IResolver resolver, Type handlerType, MethodInfo method, Type[] parameterTypes, SemaphoreSlim slim, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
+            : base(resolver, handlerType, method, parameterTypes, classRoles, methodRoles)
         {
             this.slim = slim;
         }

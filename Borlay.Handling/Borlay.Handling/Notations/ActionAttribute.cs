@@ -14,12 +14,6 @@ namespace Borlay.Handling.Notations
 
         public bool CacheSendedResponse { get; set; } = false;
 
-        public abstract string GetActionId();
-
-        public abstract byte ActionType { get; }
-
-        public abstract void AddActionId(byte[] bytes, ref int index);
-
-        public abstract string GetActionId(byte[] bytes, ref int index);
+        public abstract object GetActionId();
     }
 }

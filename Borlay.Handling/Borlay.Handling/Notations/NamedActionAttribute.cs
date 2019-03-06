@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Borlay.Arrays;
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -8,9 +9,9 @@ namespace Borlay.Handling.Notations
     public class NamedActionAttribute : ActionAttribute
     {
         private readonly byte[] nameBytes;
+        private readonly ByteArray byteArray;
 
         public string MethodName { get; }
-        public override byte ActionType => 2;
 
         public NamedActionAttribute([CallerMemberName] string methodName = "")
         {
@@ -22,26 +23,13 @@ namespace Borlay.Handling.Notations
             nameBytes = Encoding.UTF8.GetBytes(this.MethodName);
             if (nameBytes.Length > Byte.MaxValue)
                 throw new ArgumentException("Method name is too long");
+
+            this.byteArray = new ByteArray(nameBytes);
         }
 
-        public override string GetActionId()
+        public override object GetActionId()
         {
-            return MethodName;
-        }
-
-        public override void AddActionId(byte[] bytes, ref int index)
-        {
-            bytes[index++] = (byte)nameBytes.Length;
-            Array.Copy(nameBytes, 0, bytes, index, nameBytes.Length);
-            index += nameBytes.Length;
-        }
-
-        public override string GetActionId(byte[] bytes, ref int index)
-        {
-            var count = bytes[index++];
-            var id = Encoding.UTF8.GetString(bytes, index, count);
-            index += count;
-            return id;
+            return this.byteArray; //MethodName;
         }
     }
 }

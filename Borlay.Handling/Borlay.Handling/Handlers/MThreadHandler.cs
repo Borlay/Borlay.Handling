@@ -19,14 +19,18 @@ namespace Borlay.Handling
         private readonly RoleAttribute[] classRoles;
         private readonly RoleAttribute[] methodRoles;
         private readonly ActionAttribute actionAttribute;
+        private readonly Type[] parameterTypes;
+
 
         public IActionMeta ActionMeta => actionAttribute;
+        public Type[] ParameterTypes => parameterTypes;
 
-        public MThreadHandler(IResolver resolver, Type handlerType, MethodInfo method, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
+        public MThreadHandler(IResolver resolver, Type handlerType, MethodInfo method, Type[] parameterTypes, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
         {
             this.resolver = resolver;
             this.handlerType = handlerType;
             this.method = method;
+            this.parameterTypes = parameterTypes;
 
             this.actionAttribute = method.GetCustomAttribute<ActionAttribute>() ?? throw new ArgumentNullException(nameof(actionAttribute));
 
@@ -67,25 +71,26 @@ namespace Borlay.Handling
                         throw new UnauthorizedException(UnauthorizedReason.MethodAccess);
                 }
 
-                var instance = this.resolver.Resolve(handlerType);
-
-                var arguments = method.GetParameters().Select(p => session.Resolve(p.ParameterType)).ToArray();
-
-                var result = method.Invoke(instance, arguments);
-                if (result == null) return null;
-
-                if (result is Task)
+                using (var instance = this.resolver.Resolve(handlerType))
                 {
-                    var task = (Task)result;
-                    await task;
+                    var arguments = method.GetParameters().Select(p => session.Resolve(p.ParameterType)).ToArray();
 
-                    if (resultProperty != null)
-                        return resultProperty.GetValue(result);
+                    var result = method.Invoke(instance.Result, arguments);
+                    if (result == null) return null;
 
-                    return null;
+                    if (result is Task)
+                    {
+                        var task = (Task)result;
+                        await task;
+
+                        if (resultProperty != null)
+                            return resultProperty.GetValue(result);
+
+                        return null;
+                    }
+
+                    return result;
                 }
-
-                return result;
             }
         }
     }
