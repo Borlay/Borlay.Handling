@@ -97,7 +97,7 @@ namespace Borlay.Handling
                 var single = syncAttr != null ? true : false;
                 var syncGroup = syncAttr?.SyncGroup;
 
-                var methods = type.GetRuntimeMethods().ToArray();
+                var methods = type.GetRuntimeMethods().OrderBy(m => m.GetParameters().Length).ToArray();
                 foreach (var method in methods)
                 {
                     var methodInfo = method;

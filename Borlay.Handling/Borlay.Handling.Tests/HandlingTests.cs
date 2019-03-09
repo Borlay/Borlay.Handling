@@ -279,16 +279,18 @@ namespace Borlay.Handling.Tests
     [Handler, Resolve(Singletone = true)]
     public class HandlerSum
     {
-        [IdAction(0)]
-        public int SumZero()
-        {
-            return 1;
-        }
+        
 
         [IdAction(0)]
         public string SumString(string arg)
         {
             return "sum" + arg;
+        }
+
+        [IdAction(0)]
+        public int SumZero()
+        {
+            return 1;
         }
 
         [IdAction(0)]
