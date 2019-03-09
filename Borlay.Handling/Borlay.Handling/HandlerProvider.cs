@@ -41,35 +41,33 @@ namespace Borlay.Handling
             {
                 if (hd.TryGetValue(actionId, out var handlerItems))
                 {
-                    foreach(var handler in handlerItems)
+                    foreach (var handler in handlerItems)
                     {
-                        //if (handler.ParameterTypes.Length == parameterTypes.Length)
+                        if (handlerItems.Count == 1)
+                            handlerItem = handler;
+                        else
                         {
-                            if (handlerItems.Count == 1)
-                                handlerItem = handler;
-                            else
+                            if (handler.ParameterTypes.Length < parameterTypes.Length)
+                                continue;
+
+                            bool isAssignable = true;
+                            for (int i = 0; i < parameterTypes.Length; i++)
                             {
-                                bool isAssignable = true;
-                                for(int i = 0; i < parameterTypes.Length; i++)
+                                if (!handler.ParameterTypes[i].GetTypeInfo()
+                                    .IsAssignableFrom(parameterTypes[i]))
                                 {
-                                    if(!handler.ParameterTypes[i].GetTypeInfo()
-                                        .IsAssignableFrom(parameterTypes[i]))
-                                    {
-                                        isAssignable = false;
-                                        break;
-                                    }
+                                    isAssignable = false;
+                                    break;
                                 }
-
-                                if (!isAssignable) continue;
-
-                                handlerItem = handler;
                             }
 
-                            return true;
-                        }
-                    }
+                            if (!isAssignable) continue;
 
-                    
+                            handlerItem = handler;
+                        }
+
+                        return true;
+                    }
                 }
             }
 

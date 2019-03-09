@@ -19,15 +19,12 @@ namespace Borlay.Handling
             this.slim = slim;
         }
 
-        public override async Task<object> HandleAsync(IResolver resolver, object request, CancellationToken cancellationToken)
+        public override async Task<object> HandleAsync(IResolver resolver, object[] requests, CancellationToken cancellationToken)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
-
             await slim.WaitAsync();
             try
             {
-                return await base.HandleAsync(resolver, request, cancellationToken);
+                return await base.HandleAsync(resolver, requests, cancellationToken);
             }
             finally
             {

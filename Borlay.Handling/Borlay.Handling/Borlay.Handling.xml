@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Borlay.Handling</name>
+    </assembly>
+    <members>
+        <member name="M:Borlay.Handling.Notations.RoleAttribute.#ctor(System.String[])">
+            <summary>
+            User should have roles to execute.
+            </summary>
+            <param name="roles">Should have all roles</param>
+        </member>
+    </members>
+</doc>

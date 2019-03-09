@@ -42,19 +42,19 @@ namespace Borlay.Handling
 
         
 
-        public virtual async Task<object> HandleAsync(object request, CancellationToken cancellationToken)
+        public virtual async Task<object> HandleAsync(object[] requests, CancellationToken cancellationToken)
         {
-            return await HandleAsync(new Resolver(), request, cancellationToken);
+            return await HandleAsync(new Resolver(), requests, cancellationToken);
         }
 
-        public virtual async Task<object> HandleAsync(IResolver resolver, object request, CancellationToken cancellationToken)
+        public virtual async Task<object> HandleAsync(IResolver resolver, object[] requests, CancellationToken cancellationToken)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
+            if (requests == null)
+                throw new ArgumentNullException(nameof(requests));
 
             var cResolver = new CombainedResolver(resolver, this.resolver);
             var argResolver = new Resolver(cResolver);
-            argResolver.Register(request, true);
+            //argResolver.Register(request, true);
             argResolver.Register(cancellationToken);
 
             using (var session = argResolver.CreateSession())
@@ -73,7 +73,24 @@ namespace Borlay.Handling
 
                 using (var instance = this.resolver.Resolve(handlerType))
                 {
-                    var arguments = method.GetParameters().Select(p => session.Resolve(p.ParameterType)).ToArray();
+                    var parameters = method.GetParameters();
+                    var arguments = new object[parameters.Length];
+                    var argumentIndex = 0;
+
+                    for(int i = 0; i < arguments.Length; i++)
+                    {
+                        if (session.TryResolve(parameters[i].ParameterType, out var arg))
+                            arguments[i] = arg;
+                        else
+                        {
+                            if(requests.Length <= argumentIndex)
+                                throw new ArgumentException($"Argument length is less than required. Current: '{requests.Length}'");
+
+                            arguments[i] = requests[argumentIndex++];
+                        }
+                    }
+
+                    //var arguments = method.GetParameters().Select(p => session.Resolve(p.ParameterType)).ToArray();
 
                     var result = method.Invoke(instance.Result, arguments);
                     if (result == null) return null;

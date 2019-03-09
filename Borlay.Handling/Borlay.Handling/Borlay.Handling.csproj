@@ -11,6 +11,11 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>runtime interface implementation</PackageTags>
     <PackageLicenseUrl>https://github.com/Borlay/Borlay.Handling/blob/master/LICENSE.md</PackageLicenseUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>F:\github\Borlay.Handling\Borlay.Handling\Borlay.Handling\Borlay.Handling.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

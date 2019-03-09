@@ -11,17 +11,17 @@ namespace Borlay.Handling
     public static class HandlingExtensions
     {
         public static async Task<object> HandleAsync(this IHandlerProvider handlerProvider, 
-            object actionId, object request, CancellationToken cancellationToken)
+            object actionId, object[] requests, CancellationToken cancellationToken)
         {
-            var handler = handlerProvider.GetHandler("", actionId, request.GetType());
-            return await handler.HandleAsync(request, cancellationToken);
+            var handler = handlerProvider.GetHandler("", actionId, requests.Select(r => r.GetType()).ToArray());
+            return await handler.HandleAsync(requests, cancellationToken);
         }
 
-        public static async Task<object> HandleAsync(this IHandlerProvider handlerProvider, IResolver resolver, 
-            object actionId, object request, CancellationToken cancellationToken)
+        public static async Task<object> HandleAsync(this IHandlerProvider handlerProvider,
+            object actionId, params object[] requests)
         {
-            var handler = handlerProvider.GetHandler("", actionId, request.GetType());
-            return await handler.HandleAsync(resolver, request, cancellationToken);
+            var handler = handlerProvider.GetHandler("", actionId, requests.Select(r => r.GetType()).ToArray());
+            return await handler.HandleAsync(requests, CancellationToken.None);
         }
 
         public static async Task<object> HandleAsync(this IHandlerProvider handlerProvider, IResolver resolver,

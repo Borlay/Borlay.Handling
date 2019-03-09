@@ -14,7 +14,7 @@ namespace Borlay.Handling
         IActionMeta ActionMeta { get; }
         Type[] ParameterTypes { get; }
 
-        Task<object> HandleAsync(object request, CancellationToken cancellationToken);
-        Task<object> HandleAsync(IResolver resolver, object request, CancellationToken cancellationToken);
+        Task<object> HandleAsync(object[] requests, CancellationToken cancellationToken);
+        Task<object> HandleAsync(IResolver resolver, object[] requests, CancellationToken cancellationToken);
     }
 }
