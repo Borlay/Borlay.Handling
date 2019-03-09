@@ -145,8 +145,8 @@ namespace Borlay.Handling
                         ))
                         .ToArray(); // todo ištestuoti su paveldėjimu
 
-                    if(parameters.Length == 0)
-                        throw new ArgumentException($"Method '{methodInfo.Name}' should contain parameter with ArgumentAttribute");
+                    //if(parameters.Length == 0)
+                    //    throw new ArgumentException($"Method '{methodInfo.Name}' should contain parameter with ArgumentAttribute");
 
                     var handlerItem = CreateHandlerItem(type, methodInfo, parameters.Select(p => p.ParameterType).ToArray(), single, syncGroup, classRoles.ToArray(), methodRolles.ToArray());
 

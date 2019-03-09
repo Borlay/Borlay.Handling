@@ -30,6 +30,34 @@ namespace Borlay.Handling.Tests
         }
 
         [Test]
+        public async Task HandleSumZero()
+        {
+            var handler = new HandlerProvider();
+            handler.Resolver.LoadFromReference<HandlingTests>();
+            handler.LoadFromReference<HandlingTests>();
+
+            var result = await handler.HandleAsync(0);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result is int);
+            Assert.IsTrue((int)result == 1);
+        }
+
+        [Test]
+        public async Task HandleSumString()
+        {
+            var handler = new HandlerProvider();
+            handler.Resolver.LoadFromReference<HandlingTests>();
+            handler.LoadFromReference<HandlingTests>();
+
+            var result = await handler.HandleAsync(0, "s");
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result is string);
+            Assert.IsTrue((string)result == "sums");
+        }
+
+        [Test]
         public async Task HandleSumDuo()
         {
             var handler = new HandlerProvider();
@@ -251,6 +279,18 @@ namespace Borlay.Handling.Tests
     [Handler, Resolve(Singletone = true)]
     public class HandlerSum
     {
+        [IdAction(0)]
+        public int SumZero()
+        {
+            return 1;
+        }
+
+        [IdAction(0)]
+        public string SumString(string arg)
+        {
+            return "sum" + arg;
+        }
+
         [IdAction(0)]
         public int Sum(IntArgument intArgument)
         {
