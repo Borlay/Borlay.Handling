@@ -6,14 +6,14 @@ using System.Text;
 
 namespace Borlay.Handling.Notations
 {
-    public class NamedActionAttribute : ActionAttribute
+    public class NameActionAttribute : ActionAttribute
     {
         private readonly byte[] nameBytes;
         private readonly ByteArray byteArray;
 
         public string MethodName { get; }
 
-        public NamedActionAttribute([CallerMemberName] string methodName = "")
+        public NameActionAttribute([CallerMemberName] string methodName = "")
         {
             if (string.IsNullOrWhiteSpace(methodName))
                 throw new ArgumentNullException(nameof(methodName));

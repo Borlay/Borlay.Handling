@@ -16,6 +16,60 @@ namespace Borlay.Handling.Tests
         }
 
         [Test]
+        public async Task CalculatorAddDuoTest()
+        {
+            var handler = new HandlerProvider();
+            handler.Resolver.LoadFromReference<HandlingTests>();
+            handler.LoadFromReference<HandlingTests>();
+
+            handler.Resolver.Register(new CalculatorParameter() { First = 10 });
+
+            //var sum = InterfaceHandling.CreateHandler<ICalculator, InterfaceHandlerTest<ICalculator>>(new HandlerArgument() { Arg = "5" });
+            var value = await handler.HandleAsync(1, new object[] {
+                new CalculatorArgument() { Left = 2, Right = 3 },
+                new CalculatorArgument() { Left = 4, Right = 5 }
+                }, 
+                CancellationToken.None);
+            var result = (CalculatorResult)value;
+
+            Assert.AreEqual(24, result.Result);
+        }
+
+        [Test]
+        public async Task CalculatorAddStringTest()
+        {
+            var handler = new HandlerProvider();
+            handler.Resolver.LoadFromReference<HandlingTests>();
+            handler.LoadFromReference<HandlingTests>();
+
+            handler.Resolver.Register(new CalculatorParameter() { First = 10 });
+
+            //var sum = InterfaceHandling.CreateHandler<ICalculator, InterfaceHandlerTest<ICalculator>>(new HandlerArgument() { Arg = "5" });
+            var value = await handler.HandleAsync(1, "6");
+            var result = (CalculatorResult)value;
+
+            Assert.AreEqual(16, result.Result);
+        }
+
+        [Test]
+        public async Task CalculatorAddStringWithScopeTest()
+        {
+            var handler = new HandlerProvider();
+            handler.Resolver.LoadFromReference<HandlingTests>();
+            handler.LoadFromReference<HandlingTests>();
+
+            handler.Resolver.Register(new CalculatorParameter() { First = 10 });
+
+            var scopeAttr = new NameScopeAttribute("add");
+
+            //var sum = InterfaceHandling.CreateHandler<ICalculator, InterfaceHandlerTest<ICalculator>>(new HandlerArgument() { Arg = "5" });
+            var value = await handler.HandleAsync(scopeAttr.GetScopeId(), 1, "6");
+            var result = (CalculatorResult)value;
+
+            Assert.AreEqual(7, result.Result);
+        }
+
+        [Test]
         public async Task HandleSum()
         {
             var handler = new HandlerProvider();
@@ -36,7 +90,7 @@ namespace Borlay.Handling.Tests
             handler.Resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            var result = await handler.HandleAsync(0);
+            var result = await handler.HandleAsync(0, new object[] { });
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result is int);
@@ -64,7 +118,10 @@ namespace Borlay.Handling.Tests
             handler.Resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            var result = await handler.HandleAsync(0, new IntArgument() { Left = 2, Right = 3 }, new IntArgument() { Left = 4, Right = 5 });
+            var result = await handler.HandleAsync(0, new object[] {
+                new IntArgument() { Left = 2, Right = 3 },
+                new IntArgument() { Left = 4, Right = 5 }
+                });
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result is int);
@@ -78,7 +135,11 @@ namespace Borlay.Handling.Tests
             handler.Resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            var result = await handler.HandleAsync(0, new IntArgument() { Left = 2, Right = 3 }, new IntArgument() { Left = 4, Right = 5 }, new ByteArgument { Left = 6, Right = 7 });
+            var result = await handler.HandleAsync(0, new object[] {
+                new IntArgument() { Left = 2, Right = 3 },
+                new IntArgument() { Left = 4, Right = 5 },
+                new ByteArgument { Left = 6, Right = 7 }
+                });
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result is int);
@@ -186,24 +247,23 @@ namespace Borlay.Handling.Tests
         }
 
         [Test]
-        //[ExpectedException(typeof(UnauthorizedException))]
         public async Task HandlerByteMinusAsyncWithAdminMinusRolesToOtherResolver()
         {
-            var resolver = new Resolver();
-            resolver.LoadFromReference<HandlingTests>();
+            Assert.ThrowsAsync<UnauthorizedException>(async () =>
+            {
+                var resolver = new Resolver();
+                resolver.LoadFromReference<HandlingTests>();
 
-            var handler = new HandlerProvider(resolver);
-            handler.LoadFromReference<HandlingTests>();
-            handler.Resolver.Register(new Roles("Minus", "Admin"));
+                var handler = new HandlerProvider(resolver);
+                handler.LoadFromReference<HandlingTests>();
+                handler.Resolver.Register(new Roles("Minus", "Admin"));
 
-            var handler2 = new HandlerProvider(resolver);
-            handler2.LoadFromReference<HandlingTests>();
+                var handler2 = new HandlerProvider(resolver);
+                handler2.LoadFromReference<HandlingTests>();
 
-            var result = await handler2.HandleAsync(2, new ByteArgument() { Left = 6, Right = 2 });
+                var result = await handler2.HandleAsync(2, new ByteArgument() { Left = 6, Right = 2 });
+            });
 
-            Assert.IsNotNull(result);
-            Assert.IsTrue(result is int);
-            Assert.IsTrue((int)result == 3);
         }
 
         [Test]
@@ -225,41 +285,45 @@ namespace Borlay.Handling.Tests
         }
 
         [Test]
-        //[ExpectedException(typeof(UnauthorizedException))]
         public async Task HandlerByteMinusAsyncWithCalculationAdminMinusRoles()
         {
-            var resolver = new Resolver();
-            resolver.LoadFromReference<HandlingTests>();
+            Assert.ThrowsAsync<UnauthorizedException>(async () =>
+            {
+                var resolver = new Resolver();
+                resolver.LoadFromReference<HandlingTests>();
 
-            var handler = new HandlerProvider(resolver);
-            handler.LoadFromReference<HandlingTests>();
+                var handler = new HandlerProvider(resolver);
+                handler.LoadFromReference<HandlingTests>();
 
-            handler.Resolver.Register(new Roles("Calculation", "Admin"));
+                handler.Resolver.Register(new Roles("Calculation", "Admin"));
 
-            var result = await handler.HandleAsync(2, new ByteArgument() { Left = 6, Right = 2 });
+                var result = await handler.HandleAsync(2, new ByteArgument() { Left = 6, Right = 2 });
 
-            Assert.IsNotNull(result);
-            Assert.IsTrue(result is int);
-            Assert.IsTrue((int)result == 3);
+                Assert.IsNotNull(result);
+                Assert.IsTrue(result is int);
+                Assert.IsTrue((int)result == 3);
+            });
         }
 
         [Test]
-        //[ExpectedException(typeof(UnauthorizedException))]
         public async Task HandlerByteMinusAsyncWithMinusRoles()
         {
-            var resolver = new Resolver();
-            resolver.LoadFromReference<HandlingTests>();
+            Assert.ThrowsAsync<UnauthorizedException>(async () =>
+            {
+                var resolver = new Resolver();
+                resolver.LoadFromReference<HandlingTests>();
 
-            var handler = new HandlerProvider(resolver);
-            handler.LoadFromReference<HandlingTests>();
+                var handler = new HandlerProvider(resolver);
+                handler.LoadFromReference<HandlingTests>();
 
-            handler.Resolver.Register(new Roles("Minus"));
+                handler.Resolver.Register(new Roles("Minus"));
 
-            var result = await handler.HandleAsync(2, new ByteArgument() { Left = 6, Right = 2 });
+                var result = await handler.HandleAsync(2, new ByteArgument() { Left = 6, Right = 2 });
 
-            Assert.IsNotNull(result);
-            Assert.IsTrue(result is int);
-            Assert.IsTrue((int)result == 3);
+                Assert.IsNotNull(result);
+                Assert.IsTrue(result is int);
+                Assert.IsTrue((int)result == 3);
+            });
         }
     }
 

@@ -85,27 +85,27 @@ namespace Borlay.Handling
             var types = Resolver.GetTypesFromReference<HandlerAttribute>(referenceType);
             foreach (var type in types)
             {
-                var scopeAttr = type.GetTypeInfo().GetCustomAttribute<ScopeAttribute>(true);
-
-                var classRoles = new List<RoleAttribute>();
-                var methodRolles = new List<RoleAttribute>();
-
+                var classScopeAttr = type.GetTypeInfo().GetCustomAttribute<ScopeAttribute>(true);
                 var cr = type.GetTypeInfo().GetCustomAttributes<RoleAttribute>(true).ToArray();
-                classRoles.AddRange(cr);
-
                 var syncAttr = type.GetTypeInfo().GetCustomAttribute<SyncThreadAttribute>(true);
-                var single = syncAttr != null ? true : false;
-                var syncGroup = syncAttr?.SyncGroup;
+                
 
                 var methods = type.GetRuntimeMethods().OrderBy(m => m.GetParameters().Length).ToArray();
                 foreach (var method in methods)
                 {
+                    var classRoles = new List<RoleAttribute>();
+                    var methodRolles = new List<RoleAttribute>();
+                    classRoles.AddRange(cr);
+
+                    var single = syncAttr != null ? true : false;
+                    var syncGroup = syncAttr?.SyncGroup;
+
                     var methodInfo = method;
 
                     var mr = methodInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
                     methodRolles.AddRange(mr);
 
-                    scopeAttr = methodInfo.GetCustomAttribute<ScopeAttribute>(true) ?? scopeAttr;
+                    var scopeAttr = methodInfo.GetCustomAttribute<ScopeAttribute>(true) ?? classScopeAttr;
 
                     var actionAttr = methodInfo.GetCustomAttribute<ActionAttribute>(true);
                     if (actionAttr == null)
