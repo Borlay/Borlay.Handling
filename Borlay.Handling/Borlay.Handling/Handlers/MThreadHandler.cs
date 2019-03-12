@@ -57,8 +57,11 @@ namespace Borlay.Handling
             //argResolver.Register(request, true);
             argResolver.Register(cancellationToken);
 
-            using (var session = argResolver.CreateSession())
+            using (var argSession = argResolver.CreateSession())
             {
+                if (!argSession.TryResolve<IResolverSession>(out var session))
+                    session = argSession;
+
                 if (classRoles.Length > 0 || methodRoles.Length > 0)
                 {
                     if (!session.TryResolve<IRole>(out var role))
@@ -71,43 +74,42 @@ namespace Borlay.Handling
                         throw new UnauthorizedException(UnauthorizedReason.MethodAccess);
                 }
 
-                using (var instance = this.resolver.Resolve(handlerType))
+                var instance = session.Resolve(handlerType);
+
+                var parameters = method.GetParameters();
+                var arguments = new object[parameters.Length];
+                var argumentIndex = 0;
+
+                for (int i = 0; i < arguments.Length; i++)
                 {
-                    var parameters = method.GetParameters();
-                    var arguments = new object[parameters.Length];
-                    var argumentIndex = 0;
-
-                    for(int i = 0; i < arguments.Length; i++)
+                    if (session.TryResolve(parameters[i].ParameterType, out var arg))
+                        arguments[i] = arg;
+                    else
                     {
-                        if (session.TryResolve(parameters[i].ParameterType, out var arg))
-                            arguments[i] = arg;
-                        else
-                        {
-                            if(requests.Length <= argumentIndex)
-                                throw new ArgumentException($"Argument length is less than required. Current: '{requests.Length}'");
+                        if (requests.Length <= argumentIndex)
+                            throw new ArgumentException($"Argument length is less than required. Current: '{requests.Length}'");
 
-                            arguments[i] = requests[argumentIndex++];
-                        }
+                        arguments[i] = requests[argumentIndex++];
                     }
-
-                    //var arguments = method.GetParameters().Select(p => session.Resolve(p.ParameterType)).ToArray();
-
-                    var result = method.Invoke(instance.Result, arguments);
-                    if (result == null) return null;
-
-                    if (result is Task)
-                    {
-                        var task = (Task)result;
-                        await task;
-
-                        if (resultProperty != null)
-                            return resultProperty.GetValue(result);
-
-                        return null;
-                    }
-
-                    return result;
                 }
+
+                //var arguments = method.GetParameters().Select(p => session.Resolve(p.ParameterType)).ToArray();
+
+                var result = method.Invoke(instance, arguments);
+                if (result == null) return null;
+
+                if (result is Task)
+                {
+                    var task = (Task)result;
+                    await task;
+
+                    if (resultProperty != null)
+                        return resultProperty.GetValue(result);
+
+                    return null;
+                }
+
+                return result;
             }
         }
     }
