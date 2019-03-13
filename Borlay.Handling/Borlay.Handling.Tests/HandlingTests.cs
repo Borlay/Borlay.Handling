@@ -167,11 +167,19 @@ namespace Borlay.Handling.Tests
             handler.Resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
+            handler.Resolver.Register(new CalculatorParameter() { First = 10 });
+
             var watch = Stopwatch.StartNew();
 
             for (int i = 0; i < 100000; i++)
             {
-                var result = await handler.HandleAsync(0, new IntArgument() { Left = 2, Right = 3 });
+                //var result = await handler.HandleAsync(0, new IntArgument() { Left = 2, Right = 3 });
+                //var result = await handler.HandleAsync(0, new IntArgument() { Left = 2, Right = 3 });
+
+                var value = await handler.HandleAsync(1, new object[] {
+                new CalculatorArgument() { Left = 2, Right = 3 },
+                },
+                CancellationToken.None);
             }
 
             watch.Stop();

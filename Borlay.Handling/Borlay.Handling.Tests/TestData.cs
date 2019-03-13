@@ -34,22 +34,22 @@ namespace Borlay.Handling.Tests
         Task<CalculatorResult> AddAsync(string argument);
     }
 
-    [Resolve]
+    [Resolve(Singletone = false )]
     [Handler]
-    public interface ICalculator : IAddString
+    public interface ICalculator //: IAddString
     {
 
         [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
-        Task<CalculatorResult> AddAsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken);
+        CalculatorResult AddAsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken);
 
-        [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
-        Task<CalculatorResult> AddAsync();
+        //[IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
+        //Task<CalculatorResult> AddAsync();
 
-        [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
-        Task<CalculatorResult> AddAsync(CalculatorArgument argument, CalculatorArgument argument2, [Inject]CancellationToken cancellationToken);
+        //[IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
+        //Task<CalculatorResult> AddAsync(CalculatorArgument argument, CalculatorArgument argument2, [Inject]CancellationToken cancellationToken);
 
-        [NameAction]
-        Task<CalculatorResult> Subsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken);
+        //[NameAction]
+        //Task<CalculatorResult> Subsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken);
     }
 
     [Resolve]
@@ -79,34 +79,14 @@ namespace Borlay.Handling.Tests
             this.calculatorParameter = calculatorParameter;
         }
 
-        public async Task<CalculatorResult> AddAsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken)
+        public CalculatorResult AddAsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken)
         {
             return new CalculatorResult() { Result = argument.Left + argument.Right + calculatorParameter.First };
-        }
-
-        public async Task<CalculatorResult> AddAsync(string argument)
-        {
-            return new CalculatorResult() { Result = calculatorParameter.First + int.Parse(argument) };
-        }
-
-        public async Task<CalculatorResult> AddAsync()
-        {
-            return new CalculatorResult() { Result = calculatorParameter.First };
-        }
-
-        public async Task<CalculatorResult> AddAsync(CalculatorArgument argument, CalculatorArgument argument2, [Inject]CancellationToken cancellationToken)
-        {
-            return new CalculatorResult() { Result = argument.Left + argument.Right + argument2.Left + argument2.Right + calculatorParameter.First };
         }
 
         public async Task<CalculatorResult> MergeAsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken)
         {
             return new CalculatorResult() { Result = argument.Left * argument.Right * calculatorParameter.First };
-        }
-
-        public async Task<CalculatorResult> Subsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken)
-        {
-            return new CalculatorResult() { Result = argument.Left - argument.Right - calculatorParameter.First };
         }
     }
 }
