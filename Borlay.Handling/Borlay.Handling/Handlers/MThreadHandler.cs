@@ -12,7 +12,6 @@ namespace Borlay.Handling
 {
     public class MThreadHandler : IHandler
     {
-        private readonly IResolver resolver;
         private readonly Type handlerType;
         private readonly MethodInfo method;
         private readonly PropertyInfo resultProperty;
@@ -25,9 +24,8 @@ namespace Borlay.Handling
         public IActionMeta ActionMeta => actionAttribute;
         public Type[] ParameterTypes => parameterTypes;
 
-        public MThreadHandler(IResolver resolver, Type handlerType, MethodInfo method, Type[] parameterTypes, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
+        public MThreadHandler(Type handlerType, MethodInfo method, Type[] parameterTypes, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
         {
-            this.resolver = resolver;
             this.handlerType = handlerType;
             this.method = method;
             this.parameterTypes = parameterTypes;
@@ -42,35 +40,34 @@ namespace Borlay.Handling
 
         
 
-        public virtual async Task<object> HandleAsync(object[] requests, CancellationToken cancellationToken)
-        {
-            return await HandleAsync(new Resolver(), requests, cancellationToken);
-        }
+        //public virtual async Task<object> HandleAsync(object[] requests, CancellationToken cancellationToken)
+        //{
+        //    return await HandleAsync(new Resolver(), requests, cancellationToken);
+        //}
 
-        public virtual async Task<object> HandleAsync(IResolver resolver, object[] requests, CancellationToken cancellationToken)
+        public virtual async Task<object> HandleAsync(IResolverSession session, object[] requests, CancellationToken cancellationToken)
         {
             if (requests == null)
                 throw new ArgumentNullException(nameof(requests));
 
-            var cResolver = new CombainedResolver(resolver, this.resolver);
-            var argResolver = new Resolver(cResolver);
-            //argResolver.Register(request, true);
-            argResolver.Register(cancellationToken);
+            //var cResolver = new CombainedResolver(resolver, this.resolver);
+            //var argResolver = new Resolver(cResolver);
+            //argResolver.Register(cancellationToken);
 
-            using (var argSession = argResolver.CreateSession())
+            //using (var argSession = argResolver.CreateSession())
             {
-                if (!argSession.TryResolve<IResolverSession>(out var session))
-                    session = argSession;
+                //if (!argSession.TryResolve<IResolverSession>(out var session))
+                //    session = argSession;
 
                 if (classRoles.Length > 0 || methodRoles.Length > 0)
                 {
                     if (!session.TryResolve<IRole>(out var role))
                         throw new UnauthorizedException(UnauthorizedReason.NoRoleProvider);
 
-                    if (classRoles.Length > 0 && !classRoles.Any(ar => ar.Roles.All(r => role.Contains(r))))
+                    if (classRoles.Length > 0 && !classRoles.All(ar => ar.AnyOfRoles.Any(r => role.Contains(r))))
                         throw new UnauthorizedException(UnauthorizedReason.ClassAccess);
 
-                    if (methodRoles.Length > 0 && !methodRoles.Any(ar => ar.Roles.All(r => role.Contains(r))))
+                    if (methodRoles.Length > 0 && !methodRoles.All(ar => ar.AnyOfRoles.Any(r => role.Contains(r))))
                         throw new UnauthorizedException(UnauthorizedReason.MethodAccess);
                 }
 
@@ -86,14 +83,23 @@ namespace Borlay.Handling
                         arguments[i] = arg;
                     else
                     {
-                        if (requests.Length <= argumentIndex)
-                            throw new ArgumentException($"Argument length is less than required. Current: '{requests.Length}'");
+                        if (parameters[i].ParameterType.GetTypeInfo().IsAssignableFrom(typeof(CancellationToken)))
+                        {
+                            arguments[i] = cancellationToken;
+                        }
+                        else if (parameters[i].ParameterType.GetTypeInfo().IsAssignableFrom(typeof(IResolverSession)))
+                        {
+                            arguments[i] = session;
+                        }
+                        else
+                        {
+                            if (requests.Length <= argumentIndex)
+                                throw new ArgumentException($"Argument length is less than required. Current: '{requests.Length}'");
 
-                        arguments[i] = requests[argumentIndex++];
+                            arguments[i] = requests[argumentIndex++];
+                        }
                     }
                 }
-
-                //var arguments = method.GetParameters().Select(p => session.Resolve(p.ParameterType)).ToArray();
 
                 var result = method.Invoke(instance, arguments);
                 if (result == null) return null;

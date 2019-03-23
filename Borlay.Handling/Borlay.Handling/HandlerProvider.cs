@@ -15,17 +15,17 @@ namespace Borlay.Handling
         Dictionary<object, Dictionary<object, List<IHandler>>> handlers = new Dictionary<object, Dictionary<object, List<IHandler>>>();
         Dictionary<int, SemaphoreSlim> slims = new Dictionary<int, SemaphoreSlim>();
 
-        public Resolver Resolver { get; private set; }
+        //public Resolver Resolver { get; private set; }
 
         public HandlerProvider()
         {
-            this.Resolver = new Resolver();
+            //this.Resolver = new Resolver();
         }
 
-        public HandlerProvider(IResolver Resolver)
-        {
-            this.Resolver = new Resolver(Resolver);
-        }
+        //public HandlerProvider(IResolver Resolver)
+        //{
+        //    this.Resolver = new Resolver(Resolver);
+        //}
 
         public IHandler GetHandler(object scopeId, object actionId, params Type[] parameterTypes)
         {
@@ -203,9 +203,9 @@ namespace Borlay.Handling
             if(singleThread)
             {
                 var slim = CreateSyncSlim(syncGroup);
-                return new SThreadHandler(Resolver, handlerType, method, parameterTypes, slim, classRoles, methodRoles);
+                return new SThreadHandler(handlerType, method, parameterTypes, slim, classRoles, methodRoles);
             }
-            return new MThreadHandler(Resolver, handlerType, method, parameterTypes, classRoles, methodRoles);
+            return new MThreadHandler(handlerType, method, parameterTypes, classRoles, methodRoles);
         }
 
         protected virtual SemaphoreSlim CreateSyncSlim(int? syncGroup)

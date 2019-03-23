@@ -19,13 +19,14 @@ namespace Borlay.Handling.Tests
         public async Task CalculatorAddDuoTest()
         {
             var handler = new HandlerProvider();
-            handler.Resolver.LoadFromReference<HandlingTests>();
+            var resolver = new Resolver();
+            resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            handler.Resolver.Register(new CalculatorParameter() { First = 10 });
+            resolver.Register(new CalculatorParameter() { First = 10 });
 
             //var sum = InterfaceHandling.CreateHandler<ICalculator, InterfaceHandlerTest<ICalculator>>(new HandlerArgument() { Arg = "5" });
-            var value = await handler.HandleAsync(1, new object[] {
+            var value = await handler.HandleAsync(resolver.CreateSession(), 1, new object[] {
                 new CalculatorArgument() { Left = 2, Right = 3 },
                 new CalculatorArgument() { Left = 4, Right = 5 }
                 }, 
@@ -39,13 +40,14 @@ namespace Borlay.Handling.Tests
         public async Task CalculatorAddStringTest()
         {
             var handler = new HandlerProvider();
-            handler.Resolver.LoadFromReference<HandlingTests>();
+            var resolver = new Resolver();
+            resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            handler.Resolver.Register(new CalculatorParameter() { First = 10 });
+            resolver.Register(new CalculatorParameter() { First = 10 });
 
             //var sum = InterfaceHandling.CreateHandler<ICalculator, InterfaceHandlerTest<ICalculator>>(new HandlerArgument() { Arg = "5" });
-            var value = await handler.HandleAsync(1, "6");
+            var value = await handler.HandleAsync(resolver.CreateSession(), 1, "6");
             var result = (CalculatorResult)value;
 
             Assert.AreEqual(16, result.Result);
@@ -55,15 +57,16 @@ namespace Borlay.Handling.Tests
         public async Task CalculatorAddStringWithScopeTest()
         {
             var handler = new HandlerProvider();
-            handler.Resolver.LoadFromReference<HandlingTests>();
+            var resolver = new Resolver();
+            resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            handler.Resolver.Register(new CalculatorParameter() { First = 10 });
+            resolver.Register(new CalculatorParameter() { First = 10 });
 
             var scopeAttr = new NameScopeAttribute("add");
 
             //var sum = InterfaceHandling.CreateHandler<ICalculator, InterfaceHandlerTest<ICalculator>>(new HandlerArgument() { Arg = "5" });
-            var value = await handler.HandleAsync(scopeAttr.GetScopeId(), 1, "6");
+            var value = await handler.HandleAsync(resolver.CreateSession(), scopeAttr.GetScopeId(), 1, "6");
             var result = (CalculatorResult)value;
 
             Assert.AreEqual(7, result.Result);
@@ -73,10 +76,11 @@ namespace Borlay.Handling.Tests
         public async Task HandleSum()
         {
             var handler = new HandlerProvider();
-            handler.Resolver.LoadFromReference<HandlingTests>();
+            var resolver = new Resolver();
+            resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            var result = await handler.HandleAsync(0, new IntArgument() { Left = 2, Right = 3 });
+            var result = await handler.HandleAsync(resolver.CreateSession(), 0, new IntArgument() { Left = 2, Right = 3 });
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result is int);
@@ -87,10 +91,11 @@ namespace Borlay.Handling.Tests
         public async Task HandleSumZero()
         {
             var handler = new HandlerProvider();
-            handler.Resolver.LoadFromReference<HandlingTests>();
+            var resolver = new Resolver();
+            resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            var result = await handler.HandleAsync(0, new object[] { });
+            var result = await handler.HandleAsync(resolver.CreateSession(), 0, new object[] { });
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result is int);
@@ -101,10 +106,11 @@ namespace Borlay.Handling.Tests
         public async Task HandleSumString()
         {
             var handler = new HandlerProvider();
-            handler.Resolver.LoadFromReference<HandlingTests>();
+            var resolver = new Resolver();
+            resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            var result = await handler.HandleAsync(0, "s");
+            var result = await handler.HandleAsync(resolver.CreateSession(), 0, "s");
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result is string);
@@ -115,10 +121,11 @@ namespace Borlay.Handling.Tests
         public async Task HandleSumDuo()
         {
             var handler = new HandlerProvider();
-            handler.Resolver.LoadFromReference<HandlingTests>();
+            var resolver = new Resolver();
+            resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            var result = await handler.HandleAsync(0, new object[] {
+            var result = await handler.HandleAsync(resolver.CreateSession(), 0, new object[] {
                 new IntArgument() { Left = 2, Right = 3 },
                 new IntArgument() { Left = 4, Right = 5 }
                 });
@@ -132,10 +139,11 @@ namespace Borlay.Handling.Tests
         public async Task HandleSumThree()
         {
             var handler = new HandlerProvider();
-            handler.Resolver.LoadFromReference<HandlingTests>();
+            var resolver = new Resolver();
+            resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            var result = await handler.HandleAsync(0, new object[] {
+            var result = await handler.HandleAsync(resolver.CreateSession(), 0, new object[] {
                 new IntArgument() { Left = 2, Right = 3 },
                 new IntArgument() { Left = 4, Right = 5 },
                 new ByteArgument { Left = 6, Right = 7 }
@@ -150,10 +158,11 @@ namespace Borlay.Handling.Tests
         public async Task HandleMultiplyAsync()
         {
             var handler = new HandlerProvider();
-            handler.Resolver.LoadFromReference<HandlingTests>();
+            var resolver = new Resolver();
+            resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            var result = await handler.HandleAsync(1, new IntArgument() { Left = 2, Right = 3 });
+            var result = await handler.HandleAsync(resolver.CreateSession(), 1, new IntArgument() { Left = 2, Right = 3 });
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result is int);
@@ -164,10 +173,11 @@ namespace Borlay.Handling.Tests
         public async Task HandleManySum()
         {
             var handler = new HandlerProvider();
-            handler.Resolver.LoadFromReference<HandlingTests>();
+            var resolver = new Resolver();
+            resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            handler.Resolver.Register(new CalculatorParameter() { First = 10 });
+            resolver.Register(new CalculatorParameter() { First = 10 });
 
             var watch = Stopwatch.StartNew();
 
@@ -176,7 +186,7 @@ namespace Borlay.Handling.Tests
                 //var result = await handler.HandleAsync(0, new IntArgument() { Left = 2, Right = 3 });
                 //var result = await handler.HandleAsync(0, new IntArgument() { Left = 2, Right = 3 });
 
-                var value = await handler.HandleAsync(1, new object[] {
+                var value = await handler.HandleAsync(resolver.CreateSession(), 1, new object[] {
                 new CalculatorArgument() { Left = 2, Right = 3 },
                 },
                 CancellationToken.None);
@@ -190,14 +200,15 @@ namespace Borlay.Handling.Tests
         public async Task HandleManyMultiplyAsync()
         {
             var handler = new HandlerProvider();
-            handler.Resolver.LoadFromReference<HandlingTests>();
+            var resolver = new Resolver();
+            resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
             var watch = Stopwatch.StartNew();
 
             for (int i = 0; i < 100000; i++)
             {
-                var result = await handler.HandleAsync(1, new IntArgument() { Left = 2, Right = 3 });
+                var result = await handler.HandleAsync(resolver.CreateSession(), 1, new IntArgument() { Left = 2, Right = 3 });
             }
 
             watch.Stop();
@@ -208,10 +219,11 @@ namespace Borlay.Handling.Tests
         public async Task HandleMinusAsyncWithRole()
         {
             var handler = new HandlerProvider();
-            handler.Resolver.LoadFromReference<HandlingTests>();
+            var resolver = new Resolver();
+            resolver.LoadFromReference<HandlingTests>();
             handler.LoadFromReference<HandlingTests>();
 
-            var result = await handler.HandleAsync(2, new IntArgument() { Left = 2, Right = 3 });
+            var result = await handler.HandleAsync(resolver.CreateSession(), 2, new IntArgument() { Left = 2, Right = 3 });
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result is int);
@@ -224,12 +236,12 @@ namespace Borlay.Handling.Tests
             var resolver = new Resolver();
             resolver.LoadFromReference<HandlingTests>();
 
-            var handler = new HandlerProvider(resolver);
+            var handler = new HandlerProvider();
             handler.LoadFromReference<HandlingTests>();
 
-            handler.Resolver.Register(new Roles("Minus", "Calculation"));
+            resolver.Register(new Roles("Minus", "Calculation"));
 
-            var result = await handler.HandleAsync(2, new ByteArgument() { Left = 6, Right = 2 });
+            var result = await handler.HandleAsync(resolver.CreateSession(), 2, new ByteArgument() { Left = 6, Right = 2 });
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result is int);
@@ -242,36 +254,16 @@ namespace Borlay.Handling.Tests
             var resolver = new Resolver();
             resolver.LoadFromReference<HandlingTests>();
 
-            var handler = new HandlerProvider(resolver);
+            var handler = new HandlerProvider();
             handler.LoadFromReference<HandlingTests>();
 
-            handler.Resolver.Register(new Roles("Minus", "Calculation"));
+            resolver.Register(new Roles("Minus", "Calculation"));
 
-            var result = await handler.HandleAsync(2, new ByteArgument() { Left = 6, Right = 2 });
+            var result = await handler.HandleAsync(resolver.CreateSession(), 2, new ByteArgument() { Left = 6, Right = 2 });
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result is int);
             Assert.IsTrue((int)result == 3);
-        }
-
-        [Test]
-        public async Task HandlerByteMinusAsyncWithAdminMinusRolesToOtherResolver()
-        {
-            Assert.ThrowsAsync<UnauthorizedException>(async () =>
-            {
-                var resolver = new Resolver();
-                resolver.LoadFromReference<HandlingTests>();
-
-                var handler = new HandlerProvider(resolver);
-                handler.LoadFromReference<HandlingTests>();
-                handler.Resolver.Register(new Roles("Minus", "Admin"));
-
-                var handler2 = new HandlerProvider(resolver);
-                handler2.LoadFromReference<HandlingTests>();
-
-                var result = await handler2.HandleAsync(2, new ByteArgument() { Left = 6, Right = 2 });
-            });
-
         }
 
         [Test]
@@ -280,12 +272,12 @@ namespace Borlay.Handling.Tests
             var resolver = new Resolver();
             resolver.LoadFromReference<HandlingTests>();
 
-            var handler = new HandlerProvider(resolver);
+            var handler = new HandlerProvider();
             handler.LoadFromReference<HandlingTests>();
 
-            handler.Resolver.Register(new Roles("Minus", "Admin"));
+            resolver.Register(new Roles("Minus", "Admin"));
 
-            var result = await handler.HandleAsync(2, new ByteArgument() { Left = 6, Right = 2 });
+            var result = await handler.HandleAsync(resolver.CreateSession(), 2, new ByteArgument() { Left = 6, Right = 2 });
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result is int);
@@ -300,12 +292,12 @@ namespace Borlay.Handling.Tests
                 var resolver = new Resolver();
                 resolver.LoadFromReference<HandlingTests>();
 
-                var handler = new HandlerProvider(resolver);
+                var handler = new HandlerProvider();
                 handler.LoadFromReference<HandlingTests>();
 
-                handler.Resolver.Register(new Roles("Calculation", "Admin"));
+                resolver.Register(new Roles("Calculation", "Admin"));
 
-                var result = await handler.HandleAsync(2, new ByteArgument() { Left = 6, Right = 2 });
+                var result = await handler.HandleAsync(resolver.CreateSession(), 2, new ByteArgument() { Left = 6, Right = 2 });
 
                 Assert.IsNotNull(result);
                 Assert.IsTrue(result is int);
@@ -321,12 +313,12 @@ namespace Borlay.Handling.Tests
                 var resolver = new Resolver();
                 resolver.LoadFromReference<HandlingTests>();
 
-                var handler = new HandlerProvider(resolver);
+                var handler = new HandlerProvider();
                 handler.LoadFromReference<HandlingTests>();
 
-                handler.Resolver.Register(new Roles("Minus"));
+                resolver.Register(new Roles("Minus"));
 
-                var result = await handler.HandleAsync(2, new ByteArgument() { Left = 6, Right = 2 });
+                var result = await handler.HandleAsync(resolver.CreateSession(), 2, new ByteArgument() { Left = 6, Right = 2 });
 
                 Assert.IsNotNull(result);
                 Assert.IsTrue(result is int);
@@ -413,8 +405,7 @@ namespace Borlay.Handling.Tests
     }
 
 
-    [Role("Calculation")]
-    [Role("Admin")]
+    [Role("Calculation", "Admin")]
     [Handler, Resolve]
     public class HandlerByteMinusAsyncWithManyRoles
     {

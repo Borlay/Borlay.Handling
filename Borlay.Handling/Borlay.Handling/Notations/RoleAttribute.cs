@@ -7,15 +7,15 @@ namespace Borlay.Handling.Notations
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Method, AllowMultiple = true)]
     public class RoleAttribute : Attribute
     {
-        public string[] Roles { get; }
+        public string[] AnyOfRoles { get; }
 
         /// <summary>
-        /// User should have roles to execute.
+        /// User should have at least one role to execute.
         /// </summary>
-        /// <param name="roles">Should have all roles</param>
-        public RoleAttribute(params string[] roles)
+        /// <param name="anyOfRoles">Should have at least one role</param>
+        public RoleAttribute(params string[] anyOfRoles)
         {
-            this.Roles = roles;
+            this.AnyOfRoles = anyOfRoles;
         }
     }
 }

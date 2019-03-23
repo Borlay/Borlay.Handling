@@ -13,18 +13,18 @@ namespace Borlay.Handling
     {
         private readonly SemaphoreSlim slim;
 
-        public SThreadHandler(IResolver resolver, Type handlerType, MethodInfo method, Type[] parameterTypes, SemaphoreSlim slim, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
-            : base(resolver, handlerType, method, parameterTypes, classRoles, methodRoles)
+        public SThreadHandler(Type handlerType, MethodInfo method, Type[] parameterTypes, SemaphoreSlim slim, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
+            : base(handlerType, method, parameterTypes, classRoles, methodRoles)
         {
             this.slim = slim;
         }
 
-        public override async Task<object> HandleAsync(IResolver resolver, object[] requests, CancellationToken cancellationToken)
+        public override async Task<object> HandleAsync(IResolverSession session, object[] requests, CancellationToken cancellationToken)
         {
             await slim.WaitAsync();
             try
             {
-                return await base.HandleAsync(resolver, requests, cancellationToken);
+                return await base.HandleAsync(session, requests, cancellationToken);
             }
             finally
             {

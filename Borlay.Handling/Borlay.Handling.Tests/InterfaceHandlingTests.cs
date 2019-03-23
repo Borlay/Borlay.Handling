@@ -45,8 +45,11 @@ namespace Borlay.Handling.Tests
         //[ExpectedException(typeof(NotImplementedException))]
         public async Task SumPropertyThrowNotImplemented()
         {
-            var sum = InterfaceHandling.CreateHandler<ISumArg, InterfaceHandlerTest<ISumArg>>(new HandlerArgument() { Arg = "5" });
-            var value = sum.Prop;
+            Assert.ThrowsAsync<NotImplementedException>(async () =>
+            {
+                var sum = InterfaceHandling.CreateHandler<ISumArg, InterfaceHandlerTest<ISumArg>>(new HandlerArgument() { Arg = "5" });
+                var value = sum.Prop;
+            });
         }
 
         [Test]
@@ -64,20 +67,20 @@ namespace Borlay.Handling.Tests
             }
         }
 
-        [Test]
-        public async Task SumNotTaskThrow()
-        {
-            try
-            {
-                var sum = InterfaceHandling.CreateHandler<ISumNotTask, InterfaceHandlerTest<ISumNotTask>>(new HandlerArgument() { Arg = "5" });
-                throw new Exception("Should throw exception");
-            }
-            catch (Exception e)
-            {
-                if (!e.Message.Contains("Interfeice return type should inherit Task"))
-                    throw;
-            }
-        }
+        //[Test]
+        //public async Task SumNotTaskThrow()
+        //{
+        //    try
+        //    {
+        //        var sum = InterfaceHandling.CreateHandler<ISumNotTask, InterfaceHandlerTest<ISumNotTask>>(new HandlerArgument() { Arg = "5" });
+        //        throw new Exception("Should throw exception");
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        if (!e.Message.Contains("Interfeice return type should inherit Task"))
+        //            throw;
+        //    }
+        //}
 
         [Test]
         public async Task SumInterfaceHandlingMany()

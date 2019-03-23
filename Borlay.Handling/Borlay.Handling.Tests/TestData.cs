@@ -40,16 +40,16 @@ namespace Borlay.Handling.Tests
     {
 
         [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
-        CalculatorResult AddAsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken);
+        Task<CalculatorResult> AddAsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken);
 
-        //[IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
-        //Task<CalculatorResult> AddAsync();
+        [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
+        Task<CalculatorResult> AddAsync();
 
-        //[IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
-        //Task<CalculatorResult> AddAsync(CalculatorArgument argument, CalculatorArgument argument2, [Inject]CancellationToken cancellationToken);
+        [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
+        Task<CalculatorResult> AddAsync(CalculatorArgument argument, CalculatorArgument argument2, [Inject]CancellationToken cancellationToken);
 
-        //[NameAction]
-        //Task<CalculatorResult> Subsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken);
+        [NameAction]
+        Task<CalculatorResult> Subsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken);
     }
 
     [Resolve]
@@ -79,14 +79,35 @@ namespace Borlay.Handling.Tests
             this.calculatorParameter = calculatorParameter;
         }
 
-        public CalculatorResult AddAsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken)
+        public async Task<CalculatorResult> AddAsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken)
         {
             return new CalculatorResult() { Result = argument.Left + argument.Right + calculatorParameter.First };
+        }
+
+        [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
+        public async Task<CalculatorResult> AddAsync(string argument)
+        {
+            return new CalculatorResult() { Result = calculatorParameter.First + int.Parse(argument) };
+        }
+
+        public async Task<CalculatorResult> AddAsync()
+        {
+            return new CalculatorResult() { Result = calculatorParameter.First };
+        }
+
+        public async Task<CalculatorResult> AddAsync(CalculatorArgument argument, CalculatorArgument argument2, [Inject]CancellationToken cancellationToken)
+        {
+            return new CalculatorResult() { Result = argument.Left + argument.Right + argument2.Left + argument2.Right + calculatorParameter.First };
         }
 
         public async Task<CalculatorResult> MergeAsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken)
         {
             return new CalculatorResult() { Result = argument.Left * argument.Right * calculatorParameter.First };
+        }
+
+        public async Task<CalculatorResult> Subsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken)
+        {
+            return new CalculatorResult() { Result = argument.Left - argument.Right - calculatorParameter.First };
         }
     }
 }

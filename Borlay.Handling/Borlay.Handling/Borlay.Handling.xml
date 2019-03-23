@@ -6,9 +6,9 @@
     <members>
         <member name="M:Borlay.Handling.Notations.RoleAttribute.#ctor(System.String[])">
             <summary>
-            User should have roles to execute.
+            User should have at least one role to execute.
             </summary>
-            <param name="roles">Should have all roles</param>
+            <param name="anyOfRoles">Should have at least one role</param>
         </member>
     </members>
 </doc>

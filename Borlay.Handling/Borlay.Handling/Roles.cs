@@ -27,7 +27,8 @@ namespace Borlay.Handling
             if (string.IsNullOrWhiteSpace(role))
                 throw new ArgumentNullException(nameof(role));
 
-            return roles.ContainsKey(role.ToLower());
+            var contains = roles.ContainsKey(role.ToLower());
+            return contains;
         }
     }
 }
