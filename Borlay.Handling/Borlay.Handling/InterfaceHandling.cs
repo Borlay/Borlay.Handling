@@ -1,4 +1,5 @@
-﻿using Borlay.Injection;
+﻿using Borlay.Arrays;
+using Borlay.Injection;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -50,7 +51,7 @@ namespace Borlay.Handling
             var assemblyName = new Guid().ToString();
 
             var handleAsyncMethod = handlerType.GetRuntimeMethod("HandleAsync", 
-                new Type[] { typeof(string), typeof(object[]) });
+                new Type[] { typeof(string), typeof(byte[]), typeof(object[]) });
 
             var htInfo = handleAsyncMethod.ReturnType.GetTypeInfo();
 
@@ -81,11 +82,15 @@ namespace Borlay.Handling
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
 
-            foreach (var methodInfo in interfaceType.GetTypeInfo().GetMethods())
+            var methods = interfaceType.GetInterfacesMethods().Distinct().ToArray();
+            foreach (var methodInfo in methods)
             {
                 var parameters = methodInfo.GetParameters();
 
                 var mtInfo = methodInfo.ReturnType.GetTypeInfo();
+
+                var hashParameterTypes = parameters.SkipIncluded().Select(p => p.ParameterType).ToArray();
+                var methodHash = TypeHasher.GetMethodHash(hashParameterTypes, methodInfo.ReturnType);
                 
                 var methodBuilder = typeBuilder.DefineMethod(methodInfo.Name, MethodAttributes.Public | MethodAttributes.Virtual, 
                     methodInfo.ReturnType, parameters.Select(p => p.ParameterType).ToArray());
@@ -106,6 +111,7 @@ namespace Borlay.Handling
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldstr, methodInfo.Name);
+                il.AddArray(methodHash.Bytes);
 
                 il.Emit(OpCodes.Ldc_I4, parameters.Length);
                 il.Emit(OpCodes.Newarr, typeof(object));
@@ -135,6 +141,38 @@ namespace Borlay.Handling
             return typeInfo;
         }
 
+        public static void AddArray(this ILGenerator il, byte[] arr)
+        {
+            var ptype = typeof(byte);
+
+            il.Emit(OpCodes.Ldc_I4, arr.Length);
+            il.Emit(OpCodes.Newarr, ptype);
+
+            var iarr = new int[(arr.Length / 4) + (arr.Length % 4 > 0 ? 1 : 0)];
+            Buffer.BlockCopy(arr, 0, iarr, 0, arr.Length);
+
+            //il.Emit(OpCodes.Ldloc, arr);
+
+            for (int i = 0; i < iarr.Length; i++)
+            {
+                il.Emit(OpCodes.Dup);
+                il.Emit(OpCodes.Ldc_I4, i);
+                il.Emit(OpCodes.Ldc_I4, iarr[i]);
+                il.Emit(OpCodes.Stelem_I4);
+
+
+                //il.Emit(OpCodes.Dup);
+                //il.Emit(OpCodes.Ldc_I4, i);
+                //il.Emit(OpCodes.Ldarg, i + 1);
+
+                ////var ptype = parameters[i].ParameterType;
+                ////if (ptype.GetTypeInfo().IsValueType)
+                //il.Emit(OpCodes.Box, ptype);
+
+                //il.Emit(OpCodes.Stelem_Ref);
+            }
+        }
+
         public static IntPtr EmitInst<TInst>(this ILGenerator il, TInst inst) where TInst : class
         {
             var gch = GCHandle.Alloc(inst);
@@ -151,10 +189,12 @@ namespace Borlay.Handling
             /// Do this only if you can otherwise ensure that 'inst' outlives the DynamicMethod
             //gch.Free();
         }
+
+
     }
 
     public interface IInterfaceHandler
     {
-        object HandleAsync(string methodName, object[] args);
+        object HandleAsync(string methodName, byte[] methodHash, object[] args);
     }
 }

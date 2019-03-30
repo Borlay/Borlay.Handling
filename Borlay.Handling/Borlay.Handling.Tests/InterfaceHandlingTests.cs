@@ -101,6 +101,16 @@ namespace Borlay.Handling.Tests
 
             // 100k 0.17s
         }
+
+        [Test]
+        public void TestInheritedInterfaces()
+        {
+            var methods = typeof(ING).GetInterfacesMethods().Distinct().ToArray();
+            Assert.AreEqual(4, methods.Count());
+
+            var methods2 = typeof(IN1).GetInterfacesMethods().Distinct().ToArray();
+            Assert.AreEqual(1, methods2.Count());
+        }
     }
 
     public interface ISum
@@ -166,7 +176,7 @@ namespace Borlay.Handling.Tests
             this.handlerArgument = handlerArgument;
         }
 
-        public object HandleAsync(string methodName, object[] args)
+        public object HandleAsync(string methodName, byte[] methodHash, object[] args)
         {
             var methodInfo = typeof(TActAs).GetRuntimeMethod(methodName, args.Select(a => a.GetType()).ToArray());
             string result = "";
@@ -178,6 +188,22 @@ namespace Borlay.Handling.Tests
 
             result += handlerArgument.Arg;
 
+            var parameters = methodInfo.GetParameters();
+            var hashParameterTypes = parameters.SkipIncluded().Select(p => p.ParameterType).ToArray();
+            var resolvedMethodHash = TypeHasher.GetMethodHash(hashParameterTypes, methodInfo.ReturnType);
+
+            if (methodHash == null)
+                throw new ArgumentNullException(nameof(methodHash));
+
+            if (resolvedMethodHash.Bytes.Length != methodHash.Length)
+                throw new Exception("Method hashes length do not match");
+
+            for (int i = 0; i < methodHash.Length; i++)
+            {
+                if (resolvedMethodHash.Bytes[i] != methodHash[i])
+                    throw new ArgumentException("Method hashes do not match");
+            }
+
             var tcs = new TaskCompletionSource<string>();
             tcs.SetResult(result);
 
@@ -186,4 +212,25 @@ namespace Borlay.Handling.Tests
             return task;
         }
     }
+
+    public interface IN1
+    {
+        string Method1();
+    }
+
+    public interface IN2
+    {
+        string Method2();
+    }
+
+    public interface INN : IN1, IN2
+    {
+        string MethodN();
+    }
+
+    public interface ING : INN
+    {
+        string MethodG();
+    }
+
 }
