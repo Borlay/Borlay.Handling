@@ -1,4 +1,5 @@
-﻿using Borlay.Handling.Notations;
+﻿using Borlay.Arrays;
+using Borlay.Handling.Notations;
 using Borlay.Injection;
 using System;
 using System.Threading;
@@ -8,8 +9,8 @@ namespace Borlay.Handling
 {
     public interface IHandlerProvider
     {
-        bool TryGetHandler(object scopeId, object actionId, Type[] parameterTypes, out IHandler handler);
+        bool TryGetHandler(object scopeId, object actionId, ByteArray methodHash, out IHandler handler);
 
-        IHandler GetHandler(object scopeId, object actionId, params Type[] parameterTypes);
+        IHandler GetHandler(object scopeId, object actionId, ByteArray methodHash);
     }
 }

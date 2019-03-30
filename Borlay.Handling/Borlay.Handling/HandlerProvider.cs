@@ -1,4 +1,5 @@
-﻿using Borlay.Handling.Notations;
+﻿using Borlay.Arrays;
+using Borlay.Handling.Notations;
 using Borlay.Injection;
 using System;
 using System.Collections.Generic;
@@ -12,7 +13,7 @@ namespace Borlay.Handling
 {
     public class HandlerProvider : IHandlerProvider
     {
-        Dictionary<object, Dictionary<object, List<IHandler>>> handlers = new Dictionary<object, Dictionary<object, List<IHandler>>>();
+        Dictionary<object, Dictionary<object, Dictionary<ByteArray, IHandler>>> handlers = new Dictionary<object, Dictionary<object, Dictionary<ByteArray, IHandler>>>();
         Dictionary<int, SemaphoreSlim> slims = new Dictionary<int, SemaphoreSlim>();
 
         //public Resolver Resolver { get; private set; }
@@ -27,47 +28,50 @@ namespace Borlay.Handling
         //    this.Resolver = new Resolver(Resolver);
         //}
 
-        public IHandler GetHandler(object scopeId, object actionId, params Type[] parameterTypes)
+        public IHandler GetHandler(object scopeId, object actionId, ByteArray methodHash)
         {
-            if (TryGetHandler(scopeId, actionId, parameterTypes, out var handler))
+            if (TryGetHandler(scopeId, actionId, methodHash, out var handler))
                 return handler;
 
             throw new KeyNotFoundException($"Handler for action '{actionId}' not found. ScopeId: {scopeId}");
         }
 
-        public bool TryGetHandler(object scopeId, object actionId, Type[] parameterTypes, out IHandler handlerItem)
+        public bool TryGetHandler(object scopeId, object actionId, ByteArray methodHash, out IHandler handlerItem)
         {
             if (handlers.TryGetValue(scopeId, out var hd))
             {
                 if (hd.TryGetValue(actionId, out var handlerItems))
                 {
-                    foreach (var handler in handlerItems)
-                    {
-                        if (handlerItems.Count == 1)
-                            handlerItem = handler;
-                        else
-                        {
-                            if (handler.ParameterTypes.Length < parameterTypes.Length)
-                                continue;
-
-                            bool isAssignable = true;
-                            for (int i = 0; i < parameterTypes.Length; i++)
-                            {
-                                if (!handler.ParameterTypes[i].GetTypeInfo()
-                                    .IsAssignableFrom(parameterTypes[i]))
-                                {
-                                    isAssignable = false;
-                                    break;
-                                }
-                            }
-
-                            if (!isAssignable) continue;
-
-                            handlerItem = handler;
-                        }
-
+                    if (handlerItems.TryGetValue(methodHash, out handlerItem))
                         return true;
-                    }
+
+                    //foreach (var handler in handlerItems)
+                    //{
+                    //    if (handlerItems.Count == 1)
+                    //        handlerItem = handler;
+                    //    else
+                    //    {
+                    //        if (handler.ParameterTypes.Length < parameterTypes.Length)
+                    //            continue;
+
+                    //        bool isAssignable = true;
+                    //        for (int i = 0; i < parameterTypes.Length; i++)
+                    //        {
+                    //            if (!handler.ParameterTypes[i].GetTypeInfo()
+                    //                .IsAssignableFrom(parameterTypes[i]))
+                    //            {
+                    //                isAssignable = false;
+                    //                break;
+                    //            }
+                    //        }
+
+                    //        if (!isAssignable) continue;
+
+                    //        handlerItem = handler;
+                    //    }
+
+                    //    return true;
+                    //}
                 }
             }
 
@@ -134,42 +138,34 @@ namespace Borlay.Handling
                         syncGroup = mSyncAttr.SyncGroup;
                     }
 
-                    var parameters = methodInfo.GetParameters()
-                        .Where(p =>
-                        p.ParameterType.GetTypeInfo().IsValueType
-                        ||
-                        (
-                            p.GetCustomAttribute<InjectAttribute>() == null
-                            &&
-                            p.ParameterType.GetTypeInfo().GetCustomAttribute<InjectAttribute>() == null
-                        ))
-                        .ToArray(); // todo ištestuoti su paveldėjimu
+                    var parameterTypes = methodInfo.GetParameters().SkipIncluded()
+                        .Select(p => p.ParameterType).ToArray();
+                    
+                    var returnType = methodInfo.ReturnType;
 
-                    //if(parameters.Length == 0)
-                    //    throw new ArgumentException($"Method '{methodInfo.Name}' should contain parameter with ArgumentAttribute");
-
-                    var handlerItem = CreateHandlerItem(type, methodInfo, parameters.Select(p => p.ParameterType).ToArray(), single, syncGroup, classRoles.ToArray(), methodRolles.ToArray());
+                    var methodHash = TypeHasher.GetMethodHash(parameterTypes.ToArray(), returnType);
 
                     var scopeId = scopeAttr?.GetScopeId() ?? "";
+                    var actionId = actionAttr.GetActionId() ?? "";
 
-                    var actionId = actionAttr.GetActionId();
-                    
+                    var handlerItem = CreateHandlerItem(type, methodInfo, single, syncGroup, classRoles.ToArray(), methodRolles.ToArray());
+
                     if (handlers.TryGetValue(scopeId, out var hd))
                     {
                         if(hd.TryGetValue(actionId, out var handlerItems))
-                            handlerItems.Add(handlerItem);
+                            handlerItems[methodHash] = handlerItem;
                         else
                         {
-                            handlerItems = new List<IHandler>();
-                            handlerItems.Add(handlerItem);
+                            handlerItems = new Dictionary<ByteArray, IHandler>();
+                            handlerItems[methodHash] = handlerItem;
                             hd[actionId] = handlerItems;
                         }
                     }  
                     else
                     {
-                        Dictionary<object, List<IHandler>> nhd = new Dictionary<object, List<IHandler>>();
-                        var handlerItems = new List<IHandler>();
-                        handlerItems.Add(handlerItem);
+                        Dictionary<object, Dictionary<ByteArray, IHandler>> nhd = new Dictionary<object, Dictionary<ByteArray, IHandler>>();
+                        var handlerItems = new Dictionary<ByteArray, IHandler>();
+                        handlerItems[methodHash] = handlerItem;
                         nhd[actionId] = handlerItems;
                         handlers[scopeId] = nhd;
                     }
@@ -198,14 +194,14 @@ namespace Borlay.Handling
             return null;
         }
 
-        protected virtual IHandler CreateHandlerItem(Type handlerType, MethodInfo method, Type[] parameterTypes, bool singleThread, int? syncGroup, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
+        protected virtual IHandler CreateHandlerItem(Type handlerType, MethodInfo method, bool singleThread, int? syncGroup, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
         {
             if(singleThread)
             {
                 var slim = CreateSyncSlim(syncGroup);
-                return new SThreadHandler(handlerType, method, parameterTypes, slim, classRoles, methodRoles);
+                return new SThreadHandler(handlerType, method, slim, classRoles, methodRoles);
             }
-            return new MThreadHandler(handlerType, method, parameterTypes, classRoles, methodRoles);
+            return new MThreadHandler(handlerType, method, classRoles, methodRoles);
         }
 
         protected virtual SemaphoreSlim CreateSyncSlim(int? syncGroup)

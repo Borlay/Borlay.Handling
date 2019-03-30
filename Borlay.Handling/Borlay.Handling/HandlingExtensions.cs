@@ -10,53 +10,45 @@ namespace Borlay.Handling
 {
     public static class HandlingExtensions
     {
-        public static async Task<object> HandleAsync(this IHandlerProvider handlerProvider, IResolverSession session, 
+        public static async Task<T> HandleAsync<T>(this IHandlerProvider handlerProvider, IResolverSession session, 
             object actionId, object[] requests, CancellationToken cancellationToken)
         {
-            var handler = handlerProvider.GetHandler("", actionId, requests.Select(r => r.GetType()).ToArray());
-            return await handler.HandleAsync(session, requests, cancellationToken);
+            var parameterTypes = requests.Where(r => !(r is CancellationToken)).Select(r => r.GetType()).ToArray();
+            var returnType = typeof(T);
+            var methodHash = TypeHasher.GetMethodHash(parameterTypes, returnType);
+            var handler = handlerProvider.GetHandler("", actionId, methodHash);
+            return (T)await handler.HandleAsync(session, requests, cancellationToken);
         }
 
-        public static async Task<object> HandleAsync(this IHandlerProvider handlerProvider, IResolverSession session,
+        public static async Task<T> HandleAsync<T>(this IHandlerProvider handlerProvider, IResolverSession session,
             object actionId, object request)
         {
-            var handler = handlerProvider.GetHandler("", actionId, new Type[] { request.GetType() });
-            return await handler.HandleAsync(session, new object[] { request }, CancellationToken.None);
+            var returnType = typeof(T);
+            var methodHash = TypeHasher.GetMethodHash(new Type[] { request.GetType() }, returnType);
+
+            var handler = handlerProvider.GetHandler("", actionId, methodHash);
+            return (T)await handler.HandleAsync(session, new object[] { request }, CancellationToken.None);
         }
 
-        public static async Task<object> HandleAsync(this IHandlerProvider handlerProvider, IResolverSession session,
+        public static async Task<T> HandleAsync<T>(this IHandlerProvider handlerProvider, IResolverSession session,
             object scopeId, object actionId, object request)
         {
-            var handler = handlerProvider.GetHandler(scopeId, actionId, new Type[] { request.GetType() });
-            return await handler.HandleAsync(session, new object[] { request }, CancellationToken.None);
+            var returnType = typeof(T);
+            var methodHash = TypeHasher.GetMethodHash(new Type[] { request.GetType() }, returnType);
+
+            var handler = handlerProvider.GetHandler(scopeId, actionId, methodHash);
+            return (T)await handler.HandleAsync(session, new object[] { request }, CancellationToken.None);
         }
 
-        public static async Task<object> HandleAsync(this IHandlerProvider handlerProvider, IResolverSession session,
+        public static async Task<T> HandleAsync<T>(this IHandlerProvider handlerProvider, IResolverSession session,
             object actionId, object[] requests)
         {
-            var handler = handlerProvider.GetHandler("", actionId, requests.Select(r => r.GetType()).ToArray());
-            return await handler.HandleAsync(session, requests, CancellationToken.None);
+            var parameterTypes = requests.Select(r => r.GetType()).ToArray();
+            var returnType = typeof(T);
+            var methodHash = TypeHasher.GetMethodHash(parameterTypes, returnType);
+
+            var handler = handlerProvider.GetHandler("", actionId, methodHash);
+            return (T)await handler.HandleAsync(session, requests, CancellationToken.None);
         }
-
-        //public static async Task<object> HandleAsync(this IHandlerProvider handlerProvider,
-        //    object scopeId, object actionId, object[] requests)
-        //{
-        //    var handler = handlerProvider.GetHandler(scopeId, actionId, requests.Select(r => r.GetType()).ToArray());
-        //    return await handler.HandleAsync(requests, CancellationToken.None);
-        //}
-
-        //public static async Task<object> HandleAsync(this IHandlerProvider handlerProvider, IResolver resolver,
-        //    object actionId, object[] requests, CancellationToken cancellationToken)
-        //{
-        //    var handler = handlerProvider.GetHandler("", actionId, requests.Select(r => r.GetType()).ToArray());
-        //    return await handler.HandleAsync(resolver, requests, cancellationToken);
-        //}
-
-        //public static async Task<object> HandleAsync(this IHandlerProvider handlerProvider, IResolver resolver,
-        //    object scopeId, object actionId, object[] requests, CancellationToken cancellationToken)
-        //{
-        //    var handler = handlerProvider.GetHandler(scopeId, actionId, requests.Select(r => r.GetType()).ToArray());
-        //    return await handler.HandleAsync(resolver, requests, cancellationToken);
-        //}
     }
 }

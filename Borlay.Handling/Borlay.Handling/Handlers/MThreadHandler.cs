@@ -18,17 +18,17 @@ namespace Borlay.Handling
         private readonly RoleAttribute[] classRoles;
         private readonly RoleAttribute[] methodRoles;
         private readonly ActionAttribute actionAttribute;
-        private readonly Type[] parameterTypes;
+        //private readonly Type[] parameterTypes;
 
 
         public IActionMeta ActionMeta => actionAttribute;
-        public Type[] ParameterTypes => parameterTypes;
+        //public Type[] ParameterTypes => parameterTypes;
 
-        public MThreadHandler(Type handlerType, MethodInfo method, Type[] parameterTypes, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
+        public MThreadHandler(Type handlerType, MethodInfo method, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
         {
             this.handlerType = handlerType;
             this.method = method;
-            this.parameterTypes = parameterTypes;
+            //this.parameterTypes = parameterTypes;
 
             this.actionAttribute = method.GetCustomAttribute<ActionAttribute>() ?? throw new ArgumentNullException(nameof(actionAttribute));
 
@@ -96,7 +96,14 @@ namespace Borlay.Handling
                             if (requests.Length <= argumentIndex)
                                 throw new ArgumentException($"Argument length is less than required. Current: '{requests.Length}'");
 
-                            arguments[i] = requests[argumentIndex++];
+                            var req = requests[argumentIndex];
+                            if (parameters[i].ParameterType.GetTypeInfo().IsAssignableFrom(req.GetType()))
+                            {
+                                arguments[i] = req;
+                                argumentIndex++;
+                            }
+                            else
+                                arguments[i] = null;
                         }
                     }
                 }
