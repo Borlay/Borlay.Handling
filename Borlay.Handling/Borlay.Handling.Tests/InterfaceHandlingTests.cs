@@ -111,6 +111,20 @@ namespace Borlay.Handling.Tests
             var methods2 = typeof(IN1).GetInterfacesMethods().Distinct().ToArray();
             Assert.AreEqual(1, methods2.Count());
         }
+
+        [Test]
+        public void TestGenericInterfaceHash()
+        {
+            var method = typeof(ISum<int>).GetInterfacesMethods().First();
+
+            var p = method.GetParameters().First();
+            Assert.AreEqual(typeof(int), p.ParameterType);
+        }
+    }
+
+    public interface ISum<T>
+    {
+        void Sum(T param);
     }
 
     public interface ISum
