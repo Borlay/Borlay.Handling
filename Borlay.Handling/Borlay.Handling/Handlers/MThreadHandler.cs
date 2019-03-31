@@ -93,17 +93,20 @@ namespace Borlay.Handling
                         }
                         else
                         {
-                            if (requests.Length <= argumentIndex)
-                                throw new ArgumentException($"Argument length is less than required. Current: '{requests.Length}'");
+                            //if (requests.Length <= argumentIndex)
+                            //    throw new ArgumentException($"Argument length is less than required. Current: '{requests.Length}'");
 
-                            var req = requests[argumentIndex];
-                            if (parameters[i].ParameterType.GetTypeInfo().IsAssignableFrom(req.GetType()))
+                            if (requests.Length > argumentIndex)
                             {
-                                arguments[i] = req;
-                                argumentIndex++;
+                                var req = requests[argumentIndex];
+                                if (parameters[i].ParameterType.GetTypeInfo().IsAssignableFrom(req.GetType()))
+                                {
+                                    arguments[i] = req;
+                                    argumentIndex++;
+                                    continue;
+                                }
                             }
-                            else
-                                arguments[i] = null;
+                            arguments[i] = null;
                         }
                     }
                 }
