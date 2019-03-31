@@ -89,88 +89,98 @@ namespace Borlay.Handling
             var types = Resolver.GetTypesFromReference<HandlerAttribute>(referenceType);
             foreach (var type in types)
             {
-                var classScopeAttr = type.GetTypeInfo().GetCustomAttribute<ScopeAttribute>(true);
-                var cr = type.GetTypeInfo().GetCustomAttributes<RoleAttribute>(true).ToArray();
-                var syncAttr = type.GetTypeInfo().GetCustomAttribute<SyncThreadAttribute>(true);
-                
+                RegisterHandler(type);
+            }
+        }
 
-                var methods = type.GetRuntimeMethods().OrderBy(m => m.GetParameters().Length).ToArray();
-                foreach (var method in methods)
+        public bool RegisterHandler(Type type)
+        {
+            var typeInfo = type.GetTypeInfo();
+            if (typeInfo.IsAbstract || typeInfo.IsGenericTypeDefinition)
+                return false;
+
+            var classScopeAttr = typeInfo.GetCustomAttribute<ScopeAttribute>(true);
+            var cr = typeInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
+            var syncAttr = typeInfo.GetCustomAttribute<SyncThreadAttribute>(true);
+
+            var methods = type.GetRuntimeMethods().OrderBy(m => m.GetParameters().Length).ToArray();
+            foreach (var method in methods)
+            {
+                var classRoles = new List<RoleAttribute>();
+                var methodRolles = new List<RoleAttribute>();
+                classRoles.AddRange(cr);
+
+                var single = syncAttr != null ? true : false;
+                var syncGroup = syncAttr?.SyncGroup;
+
+                var methodInfo = method;
+
+                var mr = methodInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
+                methodRolles.AddRange(mr);
+
+                var scopeAttr = methodInfo.GetCustomAttribute<ScopeAttribute>(true) ?? classScopeAttr;
+
+                var actionAttr = methodInfo.GetCustomAttribute<ActionAttribute>(true);
+                if (actionAttr == null)
                 {
-                    var classRoles = new List<RoleAttribute>();
-                    var methodRolles = new List<RoleAttribute>();
-                    classRoles.AddRange(cr);
-
-                    var single = syncAttr != null ? true : false;
-                    var syncGroup = syncAttr?.SyncGroup;
-
-                    var methodInfo = method;
-
-                    var mr = methodInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
-                    methodRolles.AddRange(mr);
-
-                    var scopeAttr = methodInfo.GetCustomAttribute<ScopeAttribute>(true) ?? classScopeAttr;
-
-                    var actionAttr = methodInfo.GetCustomAttribute<ActionAttribute>(true);
+                    actionAttr = GetInterfaceAttribute<ActionAttribute>(type, ref methodInfo, out var interfaceType);
                     if (actionAttr == null)
-                    {
-                        actionAttr = GetInterfaceAttribute<ActionAttribute>(type, ref methodInfo, out var interfaceType);
-                        if (actionAttr == null)
-                            continue;
+                        continue;
 
-                        if (scopeAttr == null)
-                            scopeAttr = methodInfo.GetCustomAttribute<ScopeAttribute>(true);
+                    if (scopeAttr == null)
+                        scopeAttr = methodInfo.GetCustomAttribute<ScopeAttribute>(true);
 
-                        if (scopeAttr == null)
-                            scopeAttr = interfaceType.GetTypeInfo().GetCustomAttribute<ScopeAttribute>(true);
+                    if (scopeAttr == null)
+                        scopeAttr = interfaceType.GetTypeInfo().GetCustomAttribute<ScopeAttribute>(true);
 
-                        var ir = interfaceType.GetTypeInfo().GetCustomAttributes<RoleAttribute>(true).ToArray();
-                        classRoles.AddRange(ir);
+                    var ir = interfaceType.GetTypeInfo().GetCustomAttributes<RoleAttribute>(true).ToArray();
+                    classRoles.AddRange(ir);
 
-                        var imr = methodInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
-                        methodRolles.AddRange(imr);
-                    }
+                    var imr = methodInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
+                    methodRolles.AddRange(imr);
+                }
 
-                    var mSyncAttr = methodInfo.GetCustomAttribute<SyncThreadAttribute>(true);
-                    if (mSyncAttr != null)
-                    {
-                        single = true;
-                        syncGroup = mSyncAttr.SyncGroup;
-                    }
+                var mSyncAttr = methodInfo.GetCustomAttribute<SyncThreadAttribute>(true);
+                if (mSyncAttr != null)
+                {
+                    single = true;
+                    syncGroup = mSyncAttr.SyncGroup;
+                }
 
-                    var parameterTypes = methodInfo.GetParameters().SkipIncluded()
-                        .Select(p => p.ParameterType).ToArray();
-                    
-                    var returnType = methodInfo.ReturnType;
+                var parameterTypes = methodInfo.GetParameters().SkipIncluded()
+                    .Select(p => p.ParameterType).ToArray();
 
-                    var methodHash = TypeHasher.GetMethodHash(parameterTypes.ToArray(), returnType);
+                var returnType = methodInfo.ReturnType;
 
-                    var scopeId = scopeAttr?.GetScopeId() ?? "";
-                    var actionId = actionAttr.GetActionId() ?? "";
+                var methodHash = TypeHasher.GetMethodHash(parameterTypes.ToArray(), returnType);
 
-                    var handlerItem = CreateHandlerItem(type, methodInfo, single, syncGroup, classRoles.ToArray(), methodRolles.ToArray());
+                var scopeId = scopeAttr?.GetScopeId() ?? "";
+                var actionId = actionAttr.GetActionId() ?? "";
 
-                    if (handlers.TryGetValue(scopeId, out var hd))
-                    {
-                        if(hd.TryGetValue(actionId, out var handlerItems))
-                            handlerItems[methodHash] = handlerItem;
-                        else
-                        {
-                            handlerItems = new Dictionary<ByteArray, IHandler>();
-                            handlerItems[methodHash] = handlerItem;
-                            hd[actionId] = handlerItems;
-                        }
-                    }  
+                var handlerItem = CreateHandlerItem(type, methodInfo, single, syncGroup, classRoles.ToArray(), methodRolles.ToArray());
+
+                if (handlers.TryGetValue(scopeId, out var hd))
+                {
+                    if (hd.TryGetValue(actionId, out var handlerItems))
+                        handlerItems[methodHash] = handlerItem;
                     else
                     {
-                        Dictionary<object, Dictionary<ByteArray, IHandler>> nhd = new Dictionary<object, Dictionary<ByteArray, IHandler>>();
-                        var handlerItems = new Dictionary<ByteArray, IHandler>();
+                        handlerItems = new Dictionary<ByteArray, IHandler>();
                         handlerItems[methodHash] = handlerItem;
-                        nhd[actionId] = handlerItems;
-                        handlers[scopeId] = nhd;
+                        hd[actionId] = handlerItems;
                     }
                 }
+                else
+                {
+                    Dictionary<object, Dictionary<ByteArray, IHandler>> nhd = new Dictionary<object, Dictionary<ByteArray, IHandler>>();
+                    var handlerItems = new Dictionary<ByteArray, IHandler>();
+                    handlerItems[methodHash] = handlerItem;
+                    nhd[actionId] = handlerItems;
+                    handlers[scopeId] = nhd;
+                }
             }
+
+            return true;
         }
 
         public T GetInterfaceAttribute<T>(Type objType, ref MethodInfo methodInfo, out Type interfaceType) where T : Attribute

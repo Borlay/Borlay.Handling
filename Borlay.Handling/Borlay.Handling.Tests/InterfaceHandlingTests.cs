@@ -120,6 +120,42 @@ namespace Borlay.Handling.Tests
             var p = method.GetParameters().First();
             Assert.AreEqual(typeof(int), p.ParameterType);
         }
+
+        [Test]
+        public void TestGenericAbstractTypes()
+        {
+            var typeInfo = typeof(SumGen<int>).GetTypeInfo();
+
+            if(typeInfo.IsAbstract || typeInfo.IsGenericTypeDefinition)
+            {
+                Assert.Pass();
+            }
+            Assert.Pass();
+        }
+    }
+
+    public class SumNGen : ISum<int>
+    {
+        public void Sum(int param)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public abstract class SumGenAbst : ISum<int>
+    {
+        public void Sum(int param)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class SumGen<T> : ISum<T>
+    {
+        public void Sum(T param)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public interface ISum<T>
