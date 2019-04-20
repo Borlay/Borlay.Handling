@@ -38,7 +38,7 @@ namespace Borlay.Handling
             this.methodRoles = methodRoles;
         }
 
-        
+
 
         //public virtual async Task<object> HandleAsync(object[] requests, CancellationToken cancellationToken)
         //{
@@ -50,83 +50,70 @@ namespace Borlay.Handling
             if (requests == null)
                 throw new ArgumentNullException(nameof(requests));
 
-            //var cResolver = new CombainedResolver(resolver, this.resolver);
-            //var argResolver = new Resolver(cResolver);
-            //argResolver.Register(cancellationToken);
-
-            //using (var argSession = argResolver.CreateSession())
+            if (classRoles.Length > 0 || methodRoles.Length > 0)
             {
-                //if (!argSession.TryResolve<IResolverSession>(out var session))
-                //    session = argSession;
+                if (!session.TryResolve<IRole>(out var role))
+                    throw new UnauthorizedException(UnauthorizedReason.NoRoleProvider);
 
-                if (classRoles.Length > 0 || methodRoles.Length > 0)
+                if (classRoles.Length > 0 && !classRoles.All(ar => ar.AnyOfRoles.Any(r => role.Contains(r))))
+                    throw new UnauthorizedException(UnauthorizedReason.ClassAccess);
+
+                if (methodRoles.Length > 0 && !methodRoles.All(ar => ar.AnyOfRoles.Any(r => role.Contains(r))))
+                    throw new UnauthorizedException(UnauthorizedReason.MethodAccess);
+            }
+
+            var instance = session.Resolve(handlerType);
+
+            var parameters = method.GetParameters();
+            var arguments = new object[parameters.Length];
+            var argumentIndex = 0;
+
+            for (int i = 0; i < arguments.Length; i++)
+            {
+                if (session.TryResolve(parameters[i].ParameterType, out var arg))
+                    arguments[i] = arg;
+                else
                 {
-                    if (!session.TryResolve<IRole>(out var role))
-                        throw new UnauthorizedException(UnauthorizedReason.NoRoleProvider);
-
-                    if (classRoles.Length > 0 && !classRoles.All(ar => ar.AnyOfRoles.Any(r => role.Contains(r))))
-                        throw new UnauthorizedException(UnauthorizedReason.ClassAccess);
-
-                    if (methodRoles.Length > 0 && !methodRoles.All(ar => ar.AnyOfRoles.Any(r => role.Contains(r))))
-                        throw new UnauthorizedException(UnauthorizedReason.MethodAccess);
-                }
-
-                var instance = session.Resolve(handlerType);
-
-                var parameters = method.GetParameters();
-                var arguments = new object[parameters.Length];
-                var argumentIndex = 0;
-
-                for (int i = 0; i < arguments.Length; i++)
-                {
-                    if (session.TryResolve(parameters[i].ParameterType, out var arg))
-                        arguments[i] = arg;
+                    if (parameters[i].ParameterType.GetTypeInfo().IsAssignableFrom(typeof(CancellationToken)))
+                    {
+                        arguments[i] = cancellationToken;
+                    }
+                    else if (parameters[i].ParameterType.GetTypeInfo().IsAssignableFrom(typeof(IResolverSession)))
+                    {
+                        arguments[i] = session;
+                    }
                     else
                     {
-                        if (parameters[i].ParameterType.GetTypeInfo().IsAssignableFrom(typeof(CancellationToken)))
+                        if (requests.Length > argumentIndex)
                         {
-                            arguments[i] = cancellationToken;
-                        }
-                        else if (parameters[i].ParameterType.GetTypeInfo().IsAssignableFrom(typeof(IResolverSession)))
-                        {
-                            arguments[i] = session;
-                        }
-                        else
-                        {
-                            //if (requests.Length <= argumentIndex)
-                            //    throw new ArgumentException($"Argument length is less than required. Current: '{requests.Length}'");
-
-                            if (requests.Length > argumentIndex)
+                            var req = requests[argumentIndex];
+                            if (parameters[i].ParameterType.GetTypeInfo().IsAssignableFrom(req.GetType()))
                             {
-                                var req = requests[argumentIndex];
-                                if (parameters[i].ParameterType.GetTypeInfo().IsAssignableFrom(req.GetType()))
-                                {
-                                    arguments[i] = req;
-                                    argumentIndex++;
-                                    continue;
-                                }
+                                arguments[i] = req;
+                                argumentIndex++;
+                                continue;
                             }
-                            arguments[i] = null;
                         }
+                        arguments[i] = null;
                     }
                 }
-
-                var result = method.Invoke(instance, arguments);
-                if (result == null) return null;
-
-                if (result is Task)
-                {
-                    var task = (Task)result;
-                    await task;
-
-                    if (resultProperty != null)
-                        return resultProperty.GetValue(result);
-
-                    return null;
-                }
-
-                return result;
             }
+
+            var result = method.Invoke(instance, arguments);
+            if (result == null) return null;
+
+            if (result is Task)
+            {
+                var task = (Task)result;
+                await task;
+
+                if (resultProperty != null)
+                    return resultProperty.GetValue(result);
+
+                return null;
+            }
+
+            return result;
         }
     }
 }
