@@ -1,10 +1,12 @@
 ﻿using Borlay.Arrays;
 using Borlay.Handling.Notations;
+using Borlay.Injection;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Borlay.Handling
@@ -15,15 +17,25 @@ namespace Borlay.Handling
         {
             foreach (var par in parameterInfos)
             {
-                var inja =
-                    par.GetCustomAttribute<InjectAttribute>()
-                    ??
-                    par.ParameterType.GetTypeInfo().GetCustomAttribute<InjectAttribute>();
-
-                if (inja != null) continue;
-
+                if (par.NeedSkip()) continue;
                 yield return par;
             }
+        }
+
+        public static bool NeedSkip(this ParameterInfo info)
+        {
+            var inja =
+                    info.GetCustomAttribute<InjectAttribute>()
+                    ??
+                    info.ParameterType.GetTypeInfo().GetCustomAttribute<InjectAttribute>();
+
+            if (inja != null) return true;
+
+            if (info.ParameterType == typeof(CancellationToken) ||
+                typeof(IResolver).GetTypeInfo().IsAssignableFrom(info.ParameterType))
+                return true;
+
+            return false;
         }
 
         public static string GetTypeName<T>(bool ignoreTask)

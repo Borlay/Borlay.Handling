@@ -183,26 +183,7 @@ namespace Borlay.Handling
             return true;
         }
 
-        public T GetInterfaceAttribute<T>(Type objType, ref MethodInfo methodInfo, out Type interfaceType) where T : Attribute
-        {
-            var paramTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
-            foreach (var type in objType.GetTypeInfo().GetInterfaces())
-            {
-                var interfaceMethodInfo = type.GetRuntimeMethod(methodInfo.Name, paramTypes);
-                if (interfaceMethodInfo != null)
-                {
-                    var attr = interfaceMethodInfo.GetCustomAttribute<T>(true);
-                    if (attr != null)
-                    {
-                        interfaceType = type;
-                        methodInfo = interfaceMethodInfo;
-                        return attr;
-                    }
-                }
-            }
-            interfaceType = null;
-            return null;
-        }
+        
 
         protected virtual IHandler CreateHandlerItem(Type handlerType, MethodInfo method, bool singleThread, int? syncGroup, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
         {
