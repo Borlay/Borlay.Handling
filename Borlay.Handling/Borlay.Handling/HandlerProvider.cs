@@ -13,20 +13,28 @@ namespace Borlay.Handling
 {
     public class HandlerProvider : IHandlerProvider
     {
-        Dictionary<object, Dictionary<object, Dictionary<ByteArray, IHandler>>> handlers = new Dictionary<object, Dictionary<object, Dictionary<ByteArray, IHandler>>>();
-        Dictionary<int, SemaphoreSlim> slims = new Dictionary<int, SemaphoreSlim>();
+        protected readonly Dictionary<object, Dictionary<object, Dictionary<ByteArray, IHandler>>> handlers = 
+            new Dictionary<object, Dictionary<object, Dictionary<ByteArray, IHandler>>>();
 
-        //public Resolver Resolver { get; private set; }
+        protected readonly Dictionary<int, SemaphoreSlim> slims = 
+            new Dictionary<int, SemaphoreSlim>();
+
+        protected readonly IMethodContextInfoProvider methodContextInfoProvider;
 
         public HandlerProvider()
+            : this(new MethodContextProvider())
         {
-            //this.Resolver = new Resolver();
+
         }
 
-        //public HandlerProvider(IResolver Resolver)
-        //{
-        //    this.Resolver = new Resolver(Resolver);
-        //}
+        public HandlerProvider(IMethodContextInfoProvider methodContextInfoProvider)
+        {
+            if (methodContextInfoProvider == null)
+                throw new ArgumentNullException(nameof(methodContextInfoProvider));
+
+            this.methodContextInfoProvider = methodContextInfoProvider;
+        }
+
 
         public IHandler GetHandler(object scopeId, object actionId, ByteArray methodHash)
         {
@@ -44,34 +52,6 @@ namespace Borlay.Handling
                 {
                     if (handlerItems.TryGetValue(methodHash, out handlerItem))
                         return true;
-
-                    //foreach (var handler in handlerItems)
-                    //{
-                    //    if (handlerItems.Count == 1)
-                    //        handlerItem = handler;
-                    //    else
-                    //    {
-                    //        if (handler.ParameterTypes.Length < parameterTypes.Length)
-                    //            continue;
-
-                    //        bool isAssignable = true;
-                    //        for (int i = 0; i < parameterTypes.Length; i++)
-                    //        {
-                    //            if (!handler.ParameterTypes[i].GetTypeInfo()
-                    //                .IsAssignableFrom(parameterTypes[i]))
-                    //            {
-                    //                isAssignable = false;
-                    //                break;
-                    //            }
-                    //        }
-
-                    //        if (!isAssignable) continue;
-
-                    //        handlerItem = handler;
-                    //    }
-
-                    //    return true;
-                    //}
                 }
             }
 
@@ -79,110 +59,75 @@ namespace Borlay.Handling
             return false;
         }
 
-        public virtual void LoadFromReference<T>()
+        public virtual int LoadFromReference<T>()
         {
-            LoadFromReference(typeof(T));
+            return LoadFromReference(typeof(T));
         }
 
-        public virtual void LoadFromReference(Type referenceType)
+        public virtual int LoadFromReference(Type referenceType)
         {
+            return LoadFromReference(referenceType, methodContextInfoProvider);
+        }
+
+        public virtual int LoadFromReference(Type referenceType, IMethodContextInfoProvider methodContextInfoProvider)
+        {
+            var count = 0;
             var types = Resolver.GetTypesFromReference<HandlerAttribute>(referenceType);
             foreach (var type in types)
             {
-                RegisterHandler(type);
+                if (RegisterHandler(type, methodContextInfoProvider))
+                    count++;
             }
+            return count;
         }
 
         public bool RegisterHandler(Type type)
+        {
+            return RegisterHandler(type, methodContextInfoProvider);
+        }
+
+        public bool RegisterHandler(Type type, IMethodContextInfoProvider methodContextInfoProvider)
+        {
+            var methods = methodContextInfoProvider.GetMethodContextInfo(type);
+            return RegisterHandler(type, methods);
+        }
+
+        public bool RegisterHandler(Type type, params MethodContextInfo[] methods)
         {
             var typeInfo = type.GetTypeInfo();
             if (typeInfo.IsAbstract || typeInfo.IsGenericTypeDefinition)
                 return false;
 
-            var classScopeAttr = typeInfo.GetCustomAttribute<ScopeAttribute>(true);
-            var cr = typeInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
-            var syncAttr = typeInfo.GetCustomAttribute<SyncThreadAttribute>(true);
+            if (methods == null || methods.Length == 0) return false;
 
-            var methods = type.GetRuntimeMethods().OrderBy(m => m.GetParameters().Length).ToArray();
-            foreach (var method in methods)
+            foreach(var method in methods)
             {
-                var classRoles = new List<RoleAttribute>();
-                var methodRolles = new List<RoleAttribute>();
-                classRoles.AddRange(cr);
+                var handlerItem = CreateHandlerItem(type, method.MethodInfo, method.IsSync,
+                    method.SyncGroup, method.ClassRoles, method.MethodRoles);
 
-                var single = syncAttr != null ? true : false;
-                var syncGroup = syncAttr?.SyncGroup;
-
-                var methodInfo = method;
-
-                var mr = methodInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
-                methodRolles.AddRange(mr);
-
-                var scopeAttr = methodInfo.GetCustomAttribute<ScopeAttribute>(true) ?? classScopeAttr;
-
-                var actionAttr = methodInfo.GetCustomAttribute<ActionAttribute>(true);
-                if (actionAttr == null)
+                if (handlers.TryGetValue(method.ScopeId, out var hd))
                 {
-                    actionAttr = GetInterfaceAttribute<ActionAttribute>(type, ref methodInfo, out var interfaceType);
-                    if (actionAttr == null)
-                        continue;
-
-                    if (scopeAttr == null)
-                        scopeAttr = methodInfo.GetCustomAttribute<ScopeAttribute>(true);
-
-                    if (scopeAttr == null)
-                        scopeAttr = interfaceType.GetTypeInfo().GetCustomAttribute<ScopeAttribute>(true);
-
-                    var ir = interfaceType.GetTypeInfo().GetCustomAttributes<RoleAttribute>(true).ToArray();
-                    classRoles.AddRange(ir);
-
-                    var imr = methodInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
-                    methodRolles.AddRange(imr);
-                }
-
-                var mSyncAttr = methodInfo.GetCustomAttribute<SyncThreadAttribute>(true);
-                if (mSyncAttr != null)
-                {
-                    single = true;
-                    syncGroup = mSyncAttr.SyncGroup;
-                }
-
-                var parameterTypes = methodInfo.GetParameters().SkipIncluded()
-                    .Select(p => p.ParameterType).ToArray();
-
-                var returnType = methodInfo.ReturnType;
-
-                var methodHash = TypeHasher.GetMethodHash(parameterTypes.ToArray(), returnType);
-
-                var scopeId = scopeAttr?.GetScopeId() ?? "";
-                var actionId = actionAttr.GetActionId() ?? "";
-
-                var handlerItem = CreateHandlerItem(type, methodInfo, single, syncGroup, classRoles.ToArray(), methodRolles.ToArray());
-
-                if (handlers.TryGetValue(scopeId, out var hd))
-                {
-                    if (hd.TryGetValue(actionId, out var handlerItems))
-                        handlerItems[methodHash] = handlerItem;
+                    if (hd.TryGetValue(method.ActionId, out var handlerItems))
+                        handlerItems[method.ParameterHash] = handlerItem;
                     else
                     {
                         handlerItems = new Dictionary<ByteArray, IHandler>();
-                        handlerItems[methodHash] = handlerItem;
-                        hd[actionId] = handlerItems;
+                        handlerItems[method.ParameterHash] = handlerItem;
+                        hd[method.ActionId] = handlerItems;
                     }
                 }
                 else
                 {
                     Dictionary<object, Dictionary<ByteArray, IHandler>> nhd = new Dictionary<object, Dictionary<ByteArray, IHandler>>();
                     var handlerItems = new Dictionary<ByteArray, IHandler>();
-                    handlerItems[methodHash] = handlerItem;
-                    nhd[actionId] = handlerItems;
-                    handlers[scopeId] = nhd;
+                    handlerItems[method.ParameterHash] = handlerItem;
+                    nhd[method.ActionId] = handlerItems;
+                    handlers[method.ScopeId] = nhd;
                 }
             }
 
             return true;
         }
-
         
 
         protected virtual IHandler CreateHandlerItem(Type handlerType, MethodInfo method, bool singleThread, int? syncGroup, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)

@@ -12,112 +12,40 @@ using System.Threading.Tasks;
 
 namespace Borlay.Handling
 {
-    public static class TypeMetaDataProvider
+    public interface ITypeContextProvider
     {
-        private readonly static ConcurrentDictionary<Type, TypeMetaData> typeMetaDatas = new ConcurrentDictionary<Type, TypeMetaData>();
-
-        public static TypeMetaData GetTypeMetaData<T>()
-        {
-            var type = typeof(T);
-            return GetTypeMetaData(type);
-        }
-
-        public static TypeMetaData GetTypeMetaData(Type type)
-        {
-            if (typeMetaDatas.TryGetValue(type, out var typeMetaData))
-                return typeMetaData;
-
-            typeMetaData = new TypeMetaData(type);
-            typeMetaDatas[type] = typeMetaData;
-            return typeMetaData;
-        }
-
+        TypeContext GetMethodContext(Type type);
     }
 
-    public class TypeMetaData
+    public interface IMethodContextInfoProvider
     {
-        protected readonly Dictionary<string, Dictionary<ByteArray, MethodMetadata>> methods = new Dictionary<string, Dictionary<ByteArray, MethodMetadata>>();
-        protected readonly List<MethodMetadata> metadatas = new List<MethodMetadata>();
+        MethodContextInfo[] GetMethodContextInfo(Type type);
+    }
 
-        public MethodMetadata[] Metadatas => metadatas.ToArray();
+    public class MethodContextProvider : ITypeContextProvider, IMethodContextInfoProvider
+    {
+        protected readonly ConcurrentDictionary<Type, TypeContext> contexts = new ConcurrentDictionary<Type, TypeContext>();
 
-        public TypeMetaData(Type type)
+        public virtual MethodContextInfo[] GetMethodContextInfo(Type type)
         {
-            var methodGroups = type.GetInterfacesMethods().Distinct()
-                .Where(m => m.GetCustomAttribute<ActionAttribute>(true) != null).GroupBy(m => m.Name);
-
-            var classScopeAttr = type.GetTypeInfo().GetCustomAttribute<ScopeAttribute>(true);
-
-            foreach (var g in methodGroups)
-            {
-                var methodMeta = g.Select(m =>
-                {
-                    if (!typeof(Task).GetTypeInfo().IsAssignableFrom(m.ReturnType))
-                        throw new ArgumentNullException($"Method '{m.Name}' return type should be Task based.");
-
-                    var parameters = m.GetParameters();
-                    var ptypes = parameters.Select(p => p.ParameterType).ToArray();
-                    var actionAttr = m.GetCustomAttribute<ActionAttribute>(true);
-                    var methodScopeAttr = m.GetCustomAttribute<ScopeAttribute>(true) ?? classScopeAttr;
-
-                    //var index = -1;
-                    var ctIndex = -1;
-
-                    var argumentIndexes = new List<int>();
-                    var argumentTypes = new List<Type>();
-
-                    for (var i = 0; i < parameters.Length; i++)
-                    {
-                        var param = parameters[i];
-                        var ptype = param.ParameterType;
-                        var typeInfo = param.ParameterType.GetTypeInfo();
-                        if (
-                        param.GetCustomAttribute<InjectAttribute>(true) == null
-                            &&
-                            typeInfo.GetCustomAttribute<InjectAttribute>(true) == null
-                            &&
-                            param.ParameterType != typeof(CancellationToken)
-                            &&
-                            !typeof(IResolver).GetTypeInfo().IsAssignableFrom(param.ParameterType)
-                        )
-                        {
-                            argumentIndexes.Add(i);
-                            argumentTypes.Add(ptype);
-                        }
-
-                        if (ptype == typeof(CancellationToken))
-                            ctIndex = i;
-                    }
-
-                    var methodHash = TypeHasher.GetMethodHash(argumentTypes.ToArray(), m.ReturnType);
-
-                    var tcsType = typeof(TaskCompletionSource<>);
-                    var retType = m.ReturnType.GenericTypeArguments.FirstOrDefault() ?? typeof(bool);
-                    var tcsGenType = tcsType.MakeGenericType(retType);
-
-                    var meta = new MethodMetadata()
-                    {
-                        ArgumentIndexes = argumentIndexes.ToArray(),
-                        CancellationIndex = ctIndex,
-                        ReturnType = m.ReturnType,
-                        ActionId = actionAttr?.GetActionId(),
-                        ScopeId = methodScopeAttr?.GetScopeId(),
-                        MethodHash = methodHash,
-                        TaskCompletionSourceType = tcsGenType
-                    };
-                    return meta;
-                }).ToArray();
-
-                metadatas.AddRange(methodMeta);
-
-                var dict = methodMeta.ToDictionary(m => m.MethodHash);
-                methods.Add(g.Key, dict);
-            }
+            return GetMethodContext(type).Methods.Select(t => t.ContextInfo).ToArray();
         }
 
-        public MethodMetadata[] CreateMetaData(Type type)
+        public virtual TypeContext GetMethodContext(Type type)
         {
-            List<MethodMetadata> metas = new List<MethodMetadata>();
+            if (contexts.TryGetValue(type, out var context))
+                return context;
+
+            var methods = CreateMethodContext(type);
+            context = new TypeContext(methods);
+            contexts[type] = context;
+            return context;
+        }
+
+
+        protected virtual MethodContext[] CreateMethodContext(Type type)
+        {
+            List<MethodContext> metas = new List<MethodContext>();
 
             var typeInfo = type.GetTypeInfo();
 
@@ -125,9 +53,15 @@ namespace Borlay.Handling
             var cr = typeInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
             var syncAttr = typeInfo.GetCustomAttribute<SyncThreadAttribute>(true);
 
-            var methods = type.GetRuntimeMethods().OrderBy(m => m.GetParameters().Length).ToArray();
+            //var methods = type.GetRuntimeMethods().OrderBy(m => m.GetParameters().Length).ToArray();
+
+            var methods = type.GetInterfacesMethods()
+                .Where(m => m.GetCustomAttribute<ActionAttribute>(true) != null).Distinct().ToArray();
+
             foreach (var method in methods)
             {
+                var methodInfo = method;
+
                 var classRoles = new List<RoleAttribute>();
                 var methodRoles = new List<RoleAttribute>();
                 classRoles.AddRange(cr);
@@ -135,12 +69,10 @@ namespace Borlay.Handling
                 var single = syncAttr != null ? true : false;
                 var syncGroup = syncAttr?.SyncGroup;
 
-                var methodInfo = method;
-
                 var mr = methodInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
                 methodRoles.AddRange(mr);
 
-                var scopeAttr = methodInfo.GetCustomAttribute<ScopeAttribute>(true) ?? classScopeAttr;
+                var scopeAttr = methodInfo.DeclaringType.GetTypeInfo().GetCustomAttribute<ScopeAttribute>(true) ?? classScopeAttr;
 
                 var actionAttr = methodInfo.GetCustomAttribute<ActionAttribute>(true);
                 if (actionAttr == null)
@@ -162,6 +94,9 @@ namespace Borlay.Handling
                     methodRoles.AddRange(imr);
                 }
 
+                var scopeId = ResolveScopeId(type, scopeAttr?.GetScopeId());
+                var actionId = actionAttr.GetActionId();
+
                 var mSyncAttr = methodInfo.GetCustomAttribute<SyncThreadAttribute>(true);
                 if (mSyncAttr != null)
                 {
@@ -171,11 +106,16 @@ namespace Borlay.Handling
 
                 var parameterTypes = new List<Type>();
                 var argumentIndexes = new List<int>();
+                var ctIndex = -1;
 
                 var mp = methodInfo.GetParameters();
-                for (int i = 0; i< mp.Length; i++)
+                for (int i = 0; i < mp.Length; i++)
                 {
                     var paramInfo = mp[i];
+
+                    if (paramInfo.ParameterType == typeof(CancellationToken))
+                        ctIndex = i;
+
                     if (paramInfo.NeedSkip()) continue;
 
                     parameterTypes.Add(paramInfo.ParameterType);
@@ -185,18 +125,13 @@ namespace Borlay.Handling
                 var returnType = methodInfo.ReturnType;
                 var methodHash = TypeHasher.GetMethodHash(parameterTypes.ToArray(), returnType);
 
-                var scopeId = scopeAttr?.GetScopeId() ?? type.Name;
-                var actionId = actionAttr.GetActionId() ?? "";
-
-
 
                 var tcsType = typeof(TaskCompletionSource<>);
                 var retType = returnType.GenericTypeArguments.FirstOrDefault() ?? typeof(bool);
                 var tcsGenType = tcsType.MakeGenericType(retType);
 
-                var meta = new MethodMetadata()
+                var context = new MethodContextInfo()
                 {
-                    Type = type,
                     MethodInfo = methodInfo,
                     ClassRoles = classRoles.ToArray(),
                     MethodRoles = methodRoles.ToArray(),
@@ -204,39 +139,30 @@ namespace Borlay.Handling
                     SyncGroup = syncGroup,
                     ScopeId = scopeId,
                     ActionId = actionId,
-                    MethodHash = methodHash,
-                    ReturnType = returnType,
-                    TaskCompletionSourceType = tcsGenType,
-
+                    ParameterHash = methodHash,
                 };
 
-                //var handlerItem = CreateHandlerItem(type, methodInfo, single, syncGroup, classRoles.ToArray(), methodRolles.ToArray());
 
-                //if (handlers.TryGetValue(scopeId, out var hd))
-                //{
-                //    if (hd.TryGetValue(actionId, out var handlerItems))
-                //        handlerItems[methodHash] = handlerItem;
-                //    else
-                //    {
-                //        handlerItems = new Dictionary<ByteArray, IHandler>();
-                //        handlerItems[methodHash] = handlerItem;
-                //        hd[actionId] = handlerItems;
-                //    }
-                //}
-                //else
-                //{
-                //    Dictionary<object, Dictionary<ByteArray, IHandler>> nhd = new Dictionary<object, Dictionary<ByteArray, IHandler>>();
-                //    var handlerItems = new Dictionary<ByteArray, IHandler>();
-                //    handlerItems[methodHash] = handlerItem;
-                //    nhd[actionId] = handlerItems;
-                //    handlers[scopeId] = nhd;
-                //}
+                var meta = new MethodContext()
+                {
+                    ContextInfo = context,
+                    TaskCompletionSourceType = tcsGenType,
+                    ArgumentIndexes = argumentIndexes.ToArray(),
+                    CancellationIndex = ctIndex,
+                };
+
+                metas.Add(meta);
             }
 
             return metas.ToArray();
         }
 
-        public T GetInterfaceAttribute<T>(Type objType, ref MethodInfo methodInfo, out Type interfaceType) where T : Attribute
+        protected virtual object ResolveScopeId(Type type, object scopeId)
+        {
+            return scopeId ?? "";
+        }
+
+        protected virtual T GetInterfaceAttribute<T>(Type objType, ref MethodInfo methodInfo, out Type interfaceType) where T : Attribute
         {
             var paramTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
             foreach (var type in objType.GetTypeInfo().GetInterfaces())
@@ -256,45 +182,60 @@ namespace Borlay.Handling
             interfaceType = null;
             return null;
         }
+    }
 
-        public MethodMetadata GetMetaData(string methodName, ByteArray methodHash)
+    public class TypeContext
+    {
+        protected readonly Dictionary<string, Dictionary<ByteArray, MethodContext>> dictionary = new Dictionary<string, Dictionary<ByteArray, MethodContext>>();
+
+        public MethodContext[] Methods { get; }
+
+        public TypeContext(params MethodContext[] methodContexts)
         {
-            if (!methods.TryGetValue(methodName, out var methodMetadatas))
+            this.Methods = methodContexts;
+
+            var groups = methodContexts.GroupBy(m => m.ContextInfo.MethodInfo.Name);
+            foreach (var g in groups)
+            {
+                var dict = g.ToDictionary(m => m.ContextInfo.ParameterHash);
+                dictionary.Add(g.Key, dict);
+            }
+        }
+
+        public virtual MethodContext GetContext(string methodName, ByteArray parameterHash)
+        {
+            if (!dictionary.TryGetValue(methodName, out var methodMetadatas))
                 throw new KeyNotFoundException($"Method for name '{methodName}' not found");
 
-            if (!methodMetadatas.TryGetValue(methodHash, out var metaData))
+            if (!methodMetadatas.TryGetValue(parameterHash, out var metaData))
                 throw new KeyNotFoundException($"Method for name '{methodName}' not found");
 
             return metaData;
         }
-
     }
 
-    public class MethodMetadata
+    public class MethodContextInfo
     {
-        public Type Type { get; set; }
-
         public MethodInfo MethodInfo { get; set; }
 
         public RoleAttribute[] ClassRoles { get; set; }
-
         public RoleAttribute[] MethodRoles { get; set; }
 
         public bool IsSync { get; set; }
-
         public int? SyncGroup { get; set; }
 
-        public ByteArray MethodHash { get; set; }
-
-        public object ActionId { get; set; }
-
         public object ScopeId { get; set; }
+        public object ActionId { get; set; }
+        public ByteArray ParameterHash { get; set; }
+    }
+
+    public class MethodContext
+    {
+       public MethodContextInfo ContextInfo { get; set; }
 
         public int[] ArgumentIndexes { get; set; }
 
         public int CancellationIndex { get; set; }
-
-        public Type ReturnType { get; set; }
 
         public Type TaskCompletionSourceType { get; set; }
     }
