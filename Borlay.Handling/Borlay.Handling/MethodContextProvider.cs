@@ -14,7 +14,7 @@ namespace Borlay.Handling
 {
     public interface ITypeContextProvider
     {
-        TypeContext GetMethodContext(Type type);
+        TypeContext GetTypeContext(Type type);
     }
 
     public interface IMethodContextInfoProvider
@@ -22,16 +22,24 @@ namespace Borlay.Handling
         MethodContextInfo[] GetMethodContextInfo(Type type);
     }
 
+    [Resolve(IncludeBase = true, Singletone = true)]
     public class MethodContextProvider : ITypeContextProvider, IMethodContextInfoProvider
     {
         protected readonly ConcurrentDictionary<Type, TypeContext> contexts = new ConcurrentDictionary<Type, TypeContext>();
 
-        public virtual MethodContextInfo[] GetMethodContextInfo(Type type)
+        protected static MethodContextProvider current = new MethodContextProvider();
+        public static MethodContextProvider Current
         {
-            return GetMethodContext(type).Methods.Select(t => t.ContextInfo).ToArray();
+            get => current;
+            set => current = value;
         }
 
-        public virtual TypeContext GetMethodContext(Type type)
+        public virtual MethodContextInfo[] GetMethodContextInfo(Type type)
+        {
+            return GetTypeContext(type).Methods.Select(t => t.ContextInfo).ToArray();
+        }
+
+        public virtual TypeContext GetTypeContext(Type type)
         {
             if (contexts.TryGetValue(type, out var context))
                 return context;
@@ -186,31 +194,31 @@ namespace Borlay.Handling
 
     public class TypeContext
     {
-        protected readonly Dictionary<string, Dictionary<ByteArray, MethodContext>> dictionary = new Dictionary<string, Dictionary<ByteArray, MethodContext>>();
+        protected readonly Dictionary<ByteArray, MethodContext> contexts = new Dictionary<ByteArray, MethodContext>();
 
         public MethodContext[] Methods { get; }
 
         public TypeContext(params MethodContext[] methodContexts)
         {
             this.Methods = methodContexts;
-
-            var groups = methodContexts.GroupBy(m => m.ContextInfo.MethodInfo.Name);
-            foreach (var g in groups)
-            {
-                var dict = g.ToDictionary(m => m.ContextInfo.ActionHash);
-                dictionary.Add(g.Key, dict);
-            }
+            contexts = methodContexts.ToDictionary(m => m.ContextInfo.ActionHash);
         }
 
-        public virtual MethodContext GetContext(string methodName, ByteArray parameterHash)
+        public virtual MethodContext GetMethodContext(ByteArray actionHash)
         {
-            if (!dictionary.TryGetValue(methodName, out var methodMetadatas))
-                throw new KeyNotFoundException($"Method for name '{methodName}' not found");
+            if (contexts.TryGetValue(actionHash, out var metaData))
+                return metaData;
 
-            if (!methodMetadatas.TryGetValue(parameterHash, out var metaData))
-                throw new KeyNotFoundException($"Method for name '{methodName}' not found");
+            throw new KeyNotFoundException($"Method for given action hash not found");
+        }
 
-            return metaData;
+        public virtual bool TryeGetMethodContext(ByteArray actionHash, out MethodContext methodContext)
+        {
+            if (contexts.TryGetValue(actionHash, out methodContext))
+                return true;
+
+            methodContext = null;
+            return true;
         }
     }
 

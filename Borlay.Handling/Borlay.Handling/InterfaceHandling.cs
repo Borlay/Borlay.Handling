@@ -23,20 +23,24 @@ namespace Borlay.Handling
 
         public static TInterface CreateHandler<TInterface, THandler>(this IResolverSession session) where TInterface : class where THandler : IInterfaceHandler
         {
-            var typeInfo = CreateTypeInfo(typeof(TInterface), typeof(THandler));
+            var typeInfo = CreateTypeInfo(typeof(TInterface), typeof(THandler), session.Resolve<IMethodContextInfoProvider>());
             var obj = (TInterface)session.CreateInstance(typeInfo);
             return obj;
         }
-
         public static TInterface CreateHandler<TInterface, THandler>(params object[] arguments) where TInterface : class where THandler : IInterfaceHandler
         {
-            var typeInfo = CreateTypeInfo(typeof(TInterface), typeof(THandler));
+            return CreateHandler<TInterface, THandler>(MethodContextProvider.Current, arguments);
+        }
+
+        public static TInterface CreateHandler<TInterface, THandler>(IMethodContextInfoProvider contextInfoProvider, params object[] arguments) where TInterface : class where THandler : IInterfaceHandler
+        {
+            var typeInfo = CreateTypeInfo(typeof(TInterface), typeof(THandler), contextInfoProvider);
 
             var paramTypes = arguments.Select(p => p.GetType()).ToArray();
             var constructorInfo = typeInfo.GetConstructors()
-                .FirstOrDefault(c => 
-                    c.GetParameters().Length == paramTypes.Length 
-                    && 
+                .FirstOrDefault(c =>
+                    c.GetParameters().Length == paramTypes.Length
+                    &&
                     c.GetParameters().All(p => paramTypes.Contains(p.ParameterType)));
 
             if (constructorInfo == null)
@@ -46,7 +50,7 @@ namespace Borlay.Handling
             return obj;
         }
 
-        public static TypeInfo CreateTypeInfo(Type interfaceType, Type handlerType)
+        public static TypeInfo CreateTypeInfo(Type interfaceType, Type handlerType, IMethodContextInfoProvider contextProvider)
         {
             var assemblyName = new Guid().ToString();
 
@@ -82,16 +86,19 @@ namespace Borlay.Handling
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
 
-            var methods = interfaceType.GetInterfacesMethods().Distinct().ToArray();
-            foreach (var methodInfo in methods)
+            //var methods = interfaceType.GetInterfacesMethods().Distinct().ToArray();
+            var contexts = contextProvider.GetMethodContextInfo(interfaceType);
+            foreach (var context in contexts)
             {
+                var methodInfo = context.MethodInfo;
                 var parameters = methodInfo.GetParameters();
 
                 var mtInfo = methodInfo.ReturnType.GetTypeInfo();
 
-                var hashParameterTypes = parameters.SkipIncluded().Select(p => p.ParameterType).ToArray();
-                var methodBytes = TypeHasher.GetMethodBytes(hashParameterTypes, methodInfo.ReturnType);
-                
+                //var hashParameterTypes = parameters.SkipIncluded().Select(p => p.ParameterType).ToArray();
+                //var methodBytes = TypeHasher.GetMethodBytes(hashParameterTypes, methodInfo.ReturnType);
+                var actionHash = context.ActionHash;
+
                 var methodBuilder = typeBuilder.DefineMethod(methodInfo.Name, MethodAttributes.Public | MethodAttributes.Virtual, 
                     methodInfo.ReturnType, parameters.Select(p => p.ParameterType).ToArray());
 
@@ -111,7 +118,7 @@ namespace Borlay.Handling
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldstr, methodInfo.Name);
-                il.AddArray(methodBytes);
+                il.AddArray(actionHash.Bytes);
 
                 il.Emit(OpCodes.Ldc_I4, parameters.Length);
                 il.Emit(OpCodes.Newarr, typeof(object));

@@ -1,4 +1,5 @@
-﻿using Borlay.Injection;
+﻿using Borlay.Arrays;
+using Borlay.Injection;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,7 @@ namespace Borlay.Handling.Tests
         public async Task SumInterfaceHandlingFromResolver()
         {
             Resolver resolver = new Resolver();
+            resolver.LoadFromReference<InterfaceHandlingTests>();
             resolver.Register(new HandlerArgument() { Arg = "5" });
 
             var sum = resolver.CreateSession().CreateHandler<ISum, InterfaceHandlerTest<ISum>>();
@@ -86,6 +88,7 @@ namespace Borlay.Handling.Tests
         public async Task SumInterfaceHandlingMany()
         {
             Resolver resolver = new Resolver();
+            resolver.LoadFromReference<InterfaceHandlingTests>();
             resolver.Register(new HandlerArgument() { Arg = "5" });
 
             var sum = InterfaceHandling.CreateHandler<ISum, InterfaceHandlerTest<ISum>>(resolver.CreateSession());
@@ -216,18 +219,25 @@ namespace Borlay.Handling.Tests
     public class InterfaceHandlerTest<TActAs> : IInterfaceHandler
     {
         private readonly HandlerArgument handlerArgument;
+        private readonly TypeContext context;
 
         public InterfaceHandlerTest(int handlerArgument)
         {
+            context = MethodContextProvider.Current.GetTypeContext(typeof(TActAs));
         }
 
         public InterfaceHandlerTest(HandlerArgument handlerArgument)
         {
             this.handlerArgument = handlerArgument;
+            context = MethodContextProvider.Current.GetTypeContext(typeof(TActAs));
         }
 
         public object HandleAsync(string methodName, byte[] methodHash, object[] args)
         {
+            var methodContext = context.GetMethodContext(methodHash.ToByteArray());
+            if (methodContext == null)
+                throw new ArgumentNullException(nameof(methodContext));
+
             var methodInfo = typeof(TActAs).GetRuntimeMethod(methodName, args.Select(a => a.GetType()).ToArray());
             string result = "";
             result += methodInfo.Name;
@@ -237,22 +247,6 @@ namespace Borlay.Handling.Tests
             }
 
             result += handlerArgument.Arg;
-
-            var parameters = methodInfo.GetParameters();
-            var hashParameterTypes = parameters.SkipIncluded().Select(p => p.ParameterType).ToArray();
-            var resolvedMethodHash = TypeHasher.GetMethodBytes(hashParameterTypes, methodInfo.ReturnType);
-
-            if (methodHash == null)
-                throw new ArgumentNullException(nameof(methodHash));
-
-            if (resolvedMethodHash.Length != methodHash.Length)
-                throw new Exception("Method hashes length do not match");
-
-            for (int i = 0; i < methodHash.Length; i++)
-            {
-                if (resolvedMethodHash[i] != methodHash[i])
-                    throw new ArgumentException("Method hashes do not match");
-            }
 
             var tcs = new TaskCompletionSource<string>();
             tcs.SetResult(result);
