@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Borlay.Handling
 {
-    public interface ITypeContextProvider
+    public interface IMethodContextProvider
     {
         TypeContext GetMethodContext(Type type);
     }
@@ -22,7 +22,7 @@ namespace Borlay.Handling
         MethodContextInfo[] GetMethodContextInfo(Type type);
     }
 
-    public class MethodContextProvider : ITypeContextProvider, IMethodContextInfoProvider
+    public class MethodContextProvider : IMethodContextProvider, IMethodContextInfoProvider
     {
         protected readonly ConcurrentDictionary<Type, TypeContext> contexts = new ConcurrentDictionary<Type, TypeContext>();
 
