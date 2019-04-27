@@ -162,7 +162,7 @@ namespace Borlay.Handling
 
         protected virtual byte[] ResolveScopeId(Type type, MethodInfo methodInfo, ScopeAttribute scopeAttr)
         {
-            return scopeAttr?.GetScopeId() ?? Encoding.UTF8.GetBytes(type.Name);
+            return scopeAttr?.GetScopeId() ?? Encoding.UTF8.GetBytes(methodInfo.DeclaringType.Name);
         }
 
         protected virtual byte[] ResolveActionId(Type type, MethodInfo methodInfo, ActionAttribute actionAttr)

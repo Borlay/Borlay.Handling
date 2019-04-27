@@ -28,7 +28,6 @@ namespace Borlay.Handling.Tests
 
     [Resolve]
     [Handler]
-    [NameScope("add")]
     public interface IAddString
     {
         [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
