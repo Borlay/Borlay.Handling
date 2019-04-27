@@ -202,6 +202,6 @@ namespace Borlay.Handling
 
     public interface IInterfaceHandler
     {
-        object HandleAsync(string methodName, byte[] methodHash, object[] args);
+        object HandleAsync(string methodName, byte[] actionHashBytes, object[] args);
     }
 }
