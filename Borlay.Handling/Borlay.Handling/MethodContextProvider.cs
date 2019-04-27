@@ -63,7 +63,7 @@ namespace Borlay.Handling
             var methodGroups = type.GetInterfacesMethods().GroupBy(g =>
             {
                 var pts = g.GetParameters().Select(t => t.ParameterType).ToArray();
-                var mb = TypeHasher.GetMethodBytes(pts, g.ReturnType);
+                var mb = TypeHasher.GetMethodBytes(pts, g.ReturnType, t => t.Name);
                 var mn = Encoding.UTF8.GetBytes(g.Name);
                 var bytes = TypeHasher.CreateMD5Hash(mb, mn);
                 return new ByteArray(bytes);
@@ -112,7 +112,7 @@ namespace Borlay.Handling
                 }
 
                 var returnType = methodInfo.ReturnType;
-                var parameterHash = TypeHasher.GetMethodBytes(parameterTypes.ToArray(), returnType);
+                var parameterHash = TypeHasher.GetMethodBytes(parameterTypes.ToArray(), returnType, ResolveTypeName);
                 
                 var tcsType = typeof(TaskCompletionSource<>);
                 var retType = returnType.GenericTypeArguments.FirstOrDefault() ?? typeof(bool);
@@ -158,6 +158,11 @@ namespace Borlay.Handling
             }
 
             return contexts.Select(m => m.Value).ToArray();
+        }
+
+        protected virtual string ResolveTypeName(Type type)
+        {
+            return type.Name;
         }
 
         protected virtual byte[] ResolveScopeId(Type type, MethodInfo methodInfo, ScopeAttribute scopeAttr)

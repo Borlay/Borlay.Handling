@@ -39,48 +39,53 @@ namespace Borlay.Handling
             return false;
         }
 
-        public static string GetTypeName<T>(bool ignoreTask)
+        public static string GetTypeName<T>(bool ignoreTask, Func<Type, string> nameResolver)
         {
-            return GetTypeName(ignoreTask, typeof(T));
+            return GetTypeName(ignoreTask, nameResolver, typeof(T));
         }
 
         public static string GetMethodString(Type[] parameterTypes, Type returnType)
         {
-            var argumentHash = TypeHasher.GetTypeName(false, parameterTypes);
-            argumentHash = $"{argumentHash}:{TypeHasher.GetTypeName(true, returnType)}";
+            return GetMethodString(parameterTypes, returnType, t => t.Name);
+        }
+
+        public static string GetMethodString(Type[] parameterTypes, Type returnType, Func<Type, string> nameResolver)
+        {
+            var argumentHash = TypeHasher.GetTypeName(false, nameResolver, parameterTypes);
+            argumentHash = $"{argumentHash}:{TypeHasher.GetTypeName(true, nameResolver, returnType)}";
             return argumentHash;
         }
 
-        public static byte[] GetMethodBytes(Type[] parameterTypes, Type returnType)
+        public static byte[] GetMethodBytes(Type[] parameterTypes, Type returnType, Func<Type, string> nameResolver)
         {
-            var argumentHash = GetMethodString(parameterTypes, returnType);
+            var argumentHash = GetMethodString(parameterTypes, returnType, nameResolver);
             var bytes = Encoding.UTF8.GetBytes(argumentHash);
             return bytes;
         }
 
-        public static string GetTypeName(bool ignoreTask, params Type[] types)
+        public static string GetTypeName(bool ignoreTask, Func<Type, string> nameResolver, params Type[] types)
         {
             var sb = new StringBuilder();
-            BuildTypeName(sb, ignoreTask, types);
+            BuildTypeName(sb, ignoreTask, nameResolver, types);
             if (sb.Length == 0)
                 sb.Append("Void");
             return sb.ToString();
         }
 
-        public static void BuildTypeName(StringBuilder sb, bool ignoreTask, params Type[] types)
+        public static void BuildTypeName(StringBuilder sb, bool ignoreTask, Func<Type, string> nameResolver, params Type[] types)
         {
             foreach (var type in types)
             {
                 if (!(ignoreTask && typeof(Task).GetTypeInfo().IsAssignableFrom(type)))
-                    sb.Append(type.Name);
+                    sb.Append(nameResolver(type));
 
                 if (type.GenericTypeArguments != null && type.GenericTypeArguments.Length > 0)
                 {
-                    BuildTypeName(sb, ignoreTask, type.GenericTypeArguments);
+                    BuildTypeName(sb, ignoreTask, nameResolver, type.GenericTypeArguments);
                 }
                 if (type.HasElementType)
                 {
-                    BuildTypeName(sb, ignoreTask, type.GetElementType());
+                    BuildTypeName(sb, ignoreTask, nameResolver, type.GetElementType());
                 }
             }
         }

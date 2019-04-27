@@ -26,7 +26,7 @@ namespace Borlay.Handling
         {
             var parameterTypes = requests.Where(r => !(r is CancellationToken)).Select(r => r.GetType()).ToArray();
             var returnType = typeof(T);
-            var parameterHash = TypeHasher.GetMethodBytes(parameterTypes, returnType);
+            var parameterHash = TypeHasher.GetMethodBytes(parameterTypes, returnType, t => t.Name);
 
             var scopeBytes = Encoding.UTF8.GetBytes(scopeId);
             var actionHash = TypeHasher.CreateMD5Hash(scopeBytes, actionBytes, parameterHash);
