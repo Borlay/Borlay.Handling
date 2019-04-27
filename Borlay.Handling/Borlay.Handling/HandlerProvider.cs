@@ -24,7 +24,6 @@ namespace Borlay.Handling
         public HandlerProvider()
             : this(new MethodContextProvider())
         {
-
         }
 
         public HandlerProvider(IMethodContextInfoProvider methodContextInfoProvider)
@@ -34,7 +33,6 @@ namespace Borlay.Handling
 
             this.methodContextInfoProvider = methodContextInfoProvider;
         }
-
 
         public IHandler GetHandler(ByteArray actionHash)
         {
@@ -99,26 +97,6 @@ namespace Borlay.Handling
                     method.SyncGroup, method.ClassRoles, method.MethodRoles);
 
                 handlers[method.ActionHash] = handlerItem;
-
-                //if (handlerItems.TryGetValue(method.ScopeId, out var hd))
-                //{
-                //    if (hd.TryGetValue(method.ActionId, out var handlerItems))
-                //        handlerItems[method.ActionHash] = handlerItem;
-                //    else
-                //    {
-                //        handlerItems = new Dictionary<ByteArray, IHandler>();
-                //        handlerItems[method.ActionHash] = handlerItem;
-                //        hd[method.ActionId] = handlerItems;
-                //    }
-                //}
-                //else
-                //{
-                //    Dictionary<object, Dictionary<ByteArray, IHandler>> nhd = new Dictionary<object, Dictionary<ByteArray, IHandler>>();
-                //    var handlerItems = new Dictionary<ByteArray, IHandler>();
-                //    handlerItems[method.ActionHash] = handlerItem;
-                //    nhd[method.ActionId] = handlerItems;
-                //    this.handlerItems[method.ScopeId] = nhd;
-                //}
             }
 
             return true;

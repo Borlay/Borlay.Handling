@@ -52,8 +52,6 @@ namespace Borlay.Handling
             var cr = typeInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
             var syncAttr = typeInfo.GetCustomAttribute<SyncThreadAttribute>(true);
 
-            //var methods = type.GetRuntimeMethods().OrderBy(m => m.GetParameters().Length).ToArray();
-
             var methodGroups = type.GetInterfacesMethods().GroupBy(g =>
             {
                 var pts = g.GetParameters().Select(t => t.ParameterType).ToArray();
