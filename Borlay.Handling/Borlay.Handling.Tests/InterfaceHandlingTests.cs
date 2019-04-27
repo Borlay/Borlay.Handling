@@ -240,17 +240,17 @@ namespace Borlay.Handling.Tests
 
             var parameters = methodInfo.GetParameters();
             var hashParameterTypes = parameters.SkipIncluded().Select(p => p.ParameterType).ToArray();
-            var resolvedMethodHash = TypeHasher.GetMethodHash(hashParameterTypes, methodInfo.ReturnType);
+            var resolvedMethodHash = TypeHasher.GetMethodBytes(hashParameterTypes, methodInfo.ReturnType);
 
             if (methodHash == null)
                 throw new ArgumentNullException(nameof(methodHash));
 
-            if (resolvedMethodHash.Bytes.Length != methodHash.Length)
+            if (resolvedMethodHash.Length != methodHash.Length)
                 throw new Exception("Method hashes length do not match");
 
             for (int i = 0; i < methodHash.Length; i++)
             {
-                if (resolvedMethodHash.Bytes[i] != methodHash[i])
+                if (resolvedMethodHash[i] != methodHash[i])
                     throw new ArgumentException("Method hashes do not match");
             }
 

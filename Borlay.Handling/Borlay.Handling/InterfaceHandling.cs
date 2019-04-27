@@ -90,7 +90,7 @@ namespace Borlay.Handling
                 var mtInfo = methodInfo.ReturnType.GetTypeInfo();
 
                 var hashParameterTypes = parameters.SkipIncluded().Select(p => p.ParameterType).ToArray();
-                var methodHash = TypeHasher.GetMethodHash(hashParameterTypes, methodInfo.ReturnType);
+                var methodBytes = TypeHasher.GetMethodBytes(hashParameterTypes, methodInfo.ReturnType);
                 
                 var methodBuilder = typeBuilder.DefineMethod(methodInfo.Name, MethodAttributes.Public | MethodAttributes.Virtual, 
                     methodInfo.ReturnType, parameters.Select(p => p.ParameterType).ToArray());
@@ -111,7 +111,7 @@ namespace Borlay.Handling
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldstr, methodInfo.Name);
-                il.AddArray(methodHash.Bytes);
+                il.AddArray(methodBytes);
 
                 il.Emit(OpCodes.Ldc_I4, parameters.Length);
                 il.Emit(OpCodes.Newarr, typeof(object));

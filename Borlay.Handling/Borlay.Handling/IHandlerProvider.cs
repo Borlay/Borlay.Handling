@@ -9,8 +9,8 @@ namespace Borlay.Handling
 {
     public interface IHandlerProvider
     {
-        bool TryGetHandler(object scopeId, object actionId, ByteArray methodHash, out IHandler handler);
+        bool TryGetHandler(ByteArray actionHash, out IHandler handler);
 
-        IHandler GetHandler(object scopeId, object actionId, ByteArray methodHash);
+        IHandler GetHandler(ByteArray actionHash);
     }
 }

@@ -13,8 +13,8 @@ namespace Borlay.Handling
 {
     public class HandlerProvider : IHandlerProvider
     {
-        protected readonly Dictionary<object, Dictionary<object, Dictionary<ByteArray, IHandler>>> handlers = 
-            new Dictionary<object, Dictionary<object, Dictionary<ByteArray, IHandler>>>();
+        protected readonly Dictionary<ByteArray, IHandler> handlers = 
+            new Dictionary<ByteArray, IHandler>();
 
         protected readonly Dictionary<int, SemaphoreSlim> slims = 
             new Dictionary<int, SemaphoreSlim>();
@@ -36,25 +36,18 @@ namespace Borlay.Handling
         }
 
 
-        public IHandler GetHandler(object scopeId, object actionId, ByteArray methodHash)
+        public IHandler GetHandler(ByteArray actionHash)
         {
-            if (TryGetHandler(scopeId, actionId, methodHash, out var handler))
+            if (TryGetHandler(actionHash, out var handler))
                 return handler;
 
-            throw new KeyNotFoundException($"Handler for action '{actionId}' not found. ScopeId: {scopeId}");
+            throw new KeyNotFoundException("Handler not found");
         }
 
-        public bool TryGetHandler(object scopeId, object actionId, ByteArray methodHash, out IHandler handlerItem)
+        public bool TryGetHandler(ByteArray actionHash, out IHandler handlerItem)
         {
-            if (handlers.TryGetValue(scopeId, out var hd))
-            {
-                if (hd.TryGetValue(actionId, out var handlerItems))
-                {
-                    if (handlerItems.TryGetValue(methodHash, out handlerItem))
-                        return true;
-                }
-            }
-
+            if (handlers.TryGetValue(actionHash, out handlerItem))
+                return true;
             handlerItem = null;
             return false;
         }
@@ -105,25 +98,27 @@ namespace Borlay.Handling
                 var handlerItem = CreateHandlerItem(type, method.MethodInfo, method.IsSync,
                     method.SyncGroup, method.ClassRoles, method.MethodRoles);
 
-                if (handlers.TryGetValue(method.ScopeId, out var hd))
-                {
-                    if (hd.TryGetValue(method.ActionId, out var handlerItems))
-                        handlerItems[method.ParameterHash] = handlerItem;
-                    else
-                    {
-                        handlerItems = new Dictionary<ByteArray, IHandler>();
-                        handlerItems[method.ParameterHash] = handlerItem;
-                        hd[method.ActionId] = handlerItems;
-                    }
-                }
-                else
-                {
-                    Dictionary<object, Dictionary<ByteArray, IHandler>> nhd = new Dictionary<object, Dictionary<ByteArray, IHandler>>();
-                    var handlerItems = new Dictionary<ByteArray, IHandler>();
-                    handlerItems[method.ParameterHash] = handlerItem;
-                    nhd[method.ActionId] = handlerItems;
-                    handlers[method.ScopeId] = nhd;
-                }
+                handlers[method.ActionHash] = handlerItem;
+
+                //if (handlerItems.TryGetValue(method.ScopeId, out var hd))
+                //{
+                //    if (hd.TryGetValue(method.ActionId, out var handlerItems))
+                //        handlerItems[method.ActionHash] = handlerItem;
+                //    else
+                //    {
+                //        handlerItems = new Dictionary<ByteArray, IHandler>();
+                //        handlerItems[method.ActionHash] = handlerItem;
+                //        hd[method.ActionId] = handlerItems;
+                //    }
+                //}
+                //else
+                //{
+                //    Dictionary<object, Dictionary<ByteArray, IHandler>> nhd = new Dictionary<object, Dictionary<ByteArray, IHandler>>();
+                //    var handlerItems = new Dictionary<ByteArray, IHandler>();
+                //    handlerItems[method.ActionHash] = handlerItem;
+                //    nhd[method.ActionId] = handlerItems;
+                //    this.handlerItems[method.ScopeId] = nhd;
+                //}
             }
 
             return true;

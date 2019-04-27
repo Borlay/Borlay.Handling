@@ -59,19 +59,17 @@ namespace Borlay.Handling.Tests
         [Test]
         public async Task CalculatorAddDuoTest()
         {
-            var handler = new HandlerProvider();
+            var handlerProvider = new HandlerProvider();
             var resolver = new Resolver();
             resolver.LoadFromReference<HandlingTests>();
-            handler.LoadFromReference<HandlingTests>();
+            handlerProvider.LoadFromReference<HandlingTests>();
 
             resolver.Register(new CalculatorParameter() { First = 10 });
 
             //var sum = InterfaceHandling.CreateHandler<ICalculator, InterfaceHandlerTest<ICalculator>>(new HandlerArgument() { Arg = "5" });
-            var value = await handler.HandleAsync<CalculatorResult>(resolver.CreateSession(), 1, new object[] {
+            var value = await handlerProvider.HandleAsync<CalculatorResult>(resolver.CreateSession(), "", 1,
                 new CalculatorArgument() { Left = 2, Right = 3 },
-                new CalculatorArgument() { Left = 4, Right = 5 }
-                }, 
-                CancellationToken.None);
+                new CalculatorArgument() { Left = 4, Right = 5 });
             var result = (CalculatorResult)value;
 
             Assert.AreEqual(24, result.Result);
@@ -88,8 +86,8 @@ namespace Borlay.Handling.Tests
             resolver.Register(new CalculatorParameter() { First = 10 });
 
             //var sum = InterfaceHandling.CreateHandler<ICalculator, InterfaceHandlerTest<ICalculator>>(new HandlerArgument() { Arg = "5" });
-            var result = await handler.HandleAsync<CalculatorResult>(resolver.CreateSession(), 1, "6");
-            Assert.AreEqual(16, result.Result);
+            var result = await handler.HandleAsync<CalculatorResult>(resolver.CreateSession(), "add", 1, "6");
+            Assert.AreEqual(7, result.Result);
         }
 
         [Test]
@@ -102,10 +100,8 @@ namespace Borlay.Handling.Tests
 
             resolver.Register(new CalculatorParameter() { First = 10 });
 
-            var scopeAttr = new NameScopeAttribute("add");
-
             //var sum = InterfaceHandling.CreateHandler<ICalculator, InterfaceHandlerTest<ICalculator>>(new HandlerArgument() { Arg = "5" });
-            var value = await handler.HandleAsync<CalculatorResult>(resolver.CreateSession(), scopeAttr.GetScopeId(), 1, "6");
+            var value = await handler.HandleAsync<CalculatorResult>(resolver.CreateSession(), "add", 1, "6");
             var result = (CalculatorResult)value;
 
             Assert.AreEqual(7, result.Result);
@@ -227,8 +223,7 @@ namespace Borlay.Handling.Tests
 
                 var value = await handler.HandleAsync<CalculatorResult>(resolver.CreateSession(), 1, new object[] {
                 new CalculatorArgument() { Left = 2, Right = 3 },
-                },
-                CancellationToken.None);
+                });
             }
 
             watch.Stop();
@@ -380,6 +375,7 @@ namespace Borlay.Handling.Tests
 
 
     [Handler, Resolve(Singletone = true)]
+    [NameScope("")]
     public class HandlerSum
     {
         
@@ -416,6 +412,7 @@ namespace Borlay.Handling.Tests
     }
 
     [Handler, Resolve]
+    [NameScope("")]
     public class HandlerMultiplyAsync
     {
         [IdAction(1)]
@@ -430,6 +427,7 @@ namespace Borlay.Handling.Tests
 
     //[Role("Calculation")]
     [Handler, Resolve]
+    [NameScope("")]
     public class HandlerMinusAsyncWithRole
     {
         //[Role("Minus")]
@@ -446,6 +444,7 @@ namespace Borlay.Handling.Tests
 
     [Role("Calculation", "Admin")]
     [Handler, Resolve]
+    [NameScope("")]
     public class HandlerByteMinusAsyncWithManyRoles
     {
         [Role("Minus")]

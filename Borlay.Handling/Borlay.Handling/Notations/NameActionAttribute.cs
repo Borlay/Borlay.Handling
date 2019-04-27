@@ -9,7 +9,6 @@ namespace Borlay.Handling.Notations
     public class NameActionAttribute : ActionAttribute
     {
         private readonly byte[] nameBytes;
-        private readonly ByteArray byteArray;
 
         public string MethodName { get; }
 
@@ -23,13 +22,11 @@ namespace Borlay.Handling.Notations
             nameBytes = Encoding.UTF8.GetBytes(this.MethodName);
             if (nameBytes.Length > Byte.MaxValue)
                 throw new ArgumentException("Method name is too long");
-
-            this.byteArray = new ByteArray(nameBytes);
         }
 
-        public override object GetActionId()
+        public override byte[] GetActionId()
         {
-            return this.byteArray; //MethodName;
+            return nameBytes; //MethodName;
         }
     }
 }

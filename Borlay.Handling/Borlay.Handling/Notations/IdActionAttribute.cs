@@ -9,14 +9,17 @@ namespace Borlay.Handling.Notations
     {
         public int ActionId { get; }
 
+        private readonly byte[] bytes = new byte[4];
+
         public IdActionAttribute(int action)
         {
             this.ActionId = action;
+            bytes.AddBytes<int>(action, 4, 0);
         }
 
-        public override object GetActionId()
+        public override byte[] GetActionId()
         {
-            return ActionId;
+            return bytes;
         }
     }
 }

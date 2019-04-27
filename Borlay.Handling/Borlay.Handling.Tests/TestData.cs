@@ -28,6 +28,7 @@ namespace Borlay.Handling.Tests
 
     [Resolve]
     [Handler]
+    [NameScope("add")]
     public interface IAddString
     {
         [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
@@ -36,6 +37,7 @@ namespace Borlay.Handling.Tests
 
     [Resolve(Singletone = false )]
     [Handler]
+    [NameScope("")]
     public interface ICalculator //: IAddString
     {
 
@@ -61,7 +63,7 @@ namespace Borlay.Handling.Tests
         Task<CalculatorResult> MergeAsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken);
     }
 
-    [NameScope("add")]
+    
     public class CalculatorScope : IAddString
     {
         public async Task<CalculatorResult> AddAsync(string argument)

@@ -17,11 +17,11 @@ namespace Borlay.Handling
         private readonly PropertyInfo resultProperty;
         private readonly RoleAttribute[] classRoles;
         private readonly RoleAttribute[] methodRoles;
-        private readonly ActionAttribute actionAttribute;
+        //private readonly ActionAttribute actionAttribute;
         //private readonly Type[] parameterTypes;
 
 
-        public IActionMeta ActionMeta => actionAttribute;
+        //public IActionMeta ActionMeta => actionAttribute;
         //public Type[] ParameterTypes => parameterTypes;
 
         public MThreadHandler(Type handlerType, MethodInfo method, RoleAttribute[] classRoles, RoleAttribute[] methodRoles)
@@ -30,7 +30,7 @@ namespace Borlay.Handling
             this.method = method;
             //this.parameterTypes = parameterTypes;
 
-            this.actionAttribute = method.GetCustomAttribute<ActionAttribute>() ?? throw new ArgumentNullException(nameof(actionAttribute));
+            //this.actionAttribute = method.GetCustomAttribute<ActionAttribute>() ?? throw new ArgumentNullException(nameof(actionAttribute));
 
             resultProperty = method.ReturnType.GetTypeInfo().GetProperty("Result");
 

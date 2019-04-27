@@ -3,6 +3,7 @@ using Borlay.Handling.Notations;
 using Borlay.Injection;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
@@ -50,11 +51,11 @@ namespace Borlay.Handling
             return argumentHash;
         }
 
-        public static ByteArray GetMethodHash(Type[] parameterTypes, Type returnType)
+        public static byte[] GetMethodBytes(Type[] parameterTypes, Type returnType)
         {
             var argumentHash = GetMethodString(parameterTypes, returnType);
-            var hash = CreateMD5Hash(argumentHash);
-            return hash;
+            var bytes = Encoding.UTF8.GetBytes(argumentHash);
+            return bytes;
         }
 
         public static string GetTypeName(bool ignoreTask, params Type[] types)
@@ -84,12 +85,21 @@ namespace Borlay.Handling
             }
         }
 
-        public static ByteArray CreateMD5Hash(string value)
+        public static byte[] CreateMD5Hash(params byte[][] bytesArray)
         {
+            var length = bytesArray.Sum(b => b.Length);
+            var bytes = new byte[length];
+            var index = 0;
+            foreach(var b in bytesArray)
+            {
+                Buffer.BlockCopy(b, 0, bytes, index, b.Length);
+                index += b.Length;
+            }
+
             using (MD5 md5Hash = MD5.Create())
             {
-                byte[] data = md5Hash.ComputeHash(Encoding.UTF8.GetBytes(value));
-                return new ByteArray(data);
+                byte[] data = md5Hash.ComputeHash(bytes);
+                return data;
             }
         }
     }

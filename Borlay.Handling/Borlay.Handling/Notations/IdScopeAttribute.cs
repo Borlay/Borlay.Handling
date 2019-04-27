@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Borlay.Arrays;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -8,14 +9,17 @@ namespace Borlay.Handling.Notations
     {
         public int ActionId { get; }
 
+        private readonly byte[] bytes = new byte[4];
+
         public IdScopeAttribute(int action)
         {
             this.ActionId = action;
+            bytes.AddBytes<int>(action, 4, 0);
         }
 
-        public override object GetScopeId()
+        public override byte[] GetScopeId()
         {
-            return ActionId;
+            return bytes;
         }
     }
 }

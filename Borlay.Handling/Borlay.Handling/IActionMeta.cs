@@ -13,6 +13,6 @@ namespace Borlay.Handling
 
         bool CacheSendedResponse { get; }
 
-        object GetActionId();
+        byte[] GetActionId();
     }
 }

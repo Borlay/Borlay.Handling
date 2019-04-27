@@ -11,8 +11,6 @@ namespace Borlay.Handling
 {
     public interface IHandler
     {
-        //IActionMeta ActionMeta { get; }
-        //Task<object> HandleAsync(object[] requests, CancellationToken cancellationToken);
         Task<object> HandleAsync(IResolverSession session, object[] requests, CancellationToken cancellationToken);
     }
 }

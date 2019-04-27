@@ -42,10 +42,9 @@ namespace Borlay.Handling
             return context;
         }
 
-
         protected virtual MethodContext[] CreateMethodContext(Type type)
         {
-            List<MethodContext> metas = new List<MethodContext>();
+            Dictionary<ByteArray, MethodContext> contexts = new Dictionary<ByteArray, MethodContext>();
 
             var typeInfo = type.GetTypeInfo();
 
@@ -55,49 +54,31 @@ namespace Borlay.Handling
 
             //var methods = type.GetRuntimeMethods().OrderBy(m => m.GetParameters().Length).ToArray();
 
-            var methods = type.GetInterfacesMethods()
-                .Where(m => m.GetCustomAttribute<ActionAttribute>(true) != null).Distinct().ToArray();
-
-            foreach (var method in methods)
+            var methodGroups = type.GetInterfacesMethods().GroupBy(g =>
             {
-                var methodInfo = method;
+                var pts = g.GetParameters().Select(t => t.ParameterType).ToArray();
+                var mb = TypeHasher.GetMethodBytes(pts, g.ReturnType);
+                var mn = Encoding.UTF8.GetBytes(g.Name);
+                var bytes = TypeHasher.CreateMD5Hash(mb, mn);
+                return new ByteArray(bytes);
+            });
 
+            var single = syncAttr != null ? true : false;
+            var syncGroup = syncAttr?.SyncGroup;
+
+            foreach (var methods in methodGroups)
+            {
                 var classRoles = new List<RoleAttribute>();
                 var methodRoles = new List<RoleAttribute>();
                 classRoles.AddRange(cr);
-
-                var single = syncAttr != null ? true : false;
-                var syncGroup = syncAttr?.SyncGroup;
-
-                var mr = methodInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
+                
+                var mr = methods.SelectMany(m => m.GetCustomAttributes<RoleAttribute>(true)).ToArray();
                 methodRoles.AddRange(mr);
 
-                var scopeAttr = methodInfo.DeclaringType.GetTypeInfo().GetCustomAttribute<ScopeAttribute>(true) ?? classScopeAttr;
+                var mcr = methods.SelectMany(m => m.DeclaringType.GetTypeInfo().GetCustomAttributes<RoleAttribute>(true)).ToArray();
+                classRoles.AddRange(mcr);
 
-                var actionAttr = methodInfo.GetCustomAttribute<ActionAttribute>(true);
-                if (actionAttr == null)
-                {
-                    actionAttr = GetInterfaceAttribute<ActionAttribute>(type, ref methodInfo, out var interfaceType);
-                    if (actionAttr == null)
-                        continue;
-
-                    if (scopeAttr == null)
-                        scopeAttr = methodInfo.GetCustomAttribute<ScopeAttribute>(true);
-
-                    if (scopeAttr == null)
-                        scopeAttr = interfaceType.GetTypeInfo().GetCustomAttribute<ScopeAttribute>(true);
-
-                    var ir = interfaceType.GetTypeInfo().GetCustomAttributes<RoleAttribute>(true).ToArray();
-                    classRoles.AddRange(ir);
-
-                    var imr = methodInfo.GetCustomAttributes<RoleAttribute>(true).ToArray();
-                    methodRoles.AddRange(imr);
-                }
-
-                var scopeId = ResolveScopeId(type, scopeAttr?.GetScopeId());
-                var actionId = actionAttr.GetActionId();
-
-                var mSyncAttr = methodInfo.GetCustomAttribute<SyncThreadAttribute>(true);
+                var mSyncAttr = methods.SelectMany(m => m.GetCustomAttributes<SyncThreadAttribute>(true)).FirstOrDefault();
                 if (mSyncAttr != null)
                 {
                     single = true;
@@ -107,6 +88,8 @@ namespace Borlay.Handling
                 var parameterTypes = new List<Type>();
                 var argumentIndexes = new List<int>();
                 var ctIndex = -1;
+
+                var methodInfo = methods.First();
 
                 var mp = methodInfo.GetParameters();
                 for (int i = 0; i < mp.Length; i++)
@@ -123,43 +106,62 @@ namespace Borlay.Handling
                 }
 
                 var returnType = methodInfo.ReturnType;
-                var methodHash = TypeHasher.GetMethodHash(parameterTypes.ToArray(), returnType);
-
-
+                var parameterHash = TypeHasher.GetMethodBytes(parameterTypes.ToArray(), returnType);
+                
                 var tcsType = typeof(TaskCompletionSource<>);
                 var retType = returnType.GenericTypeArguments.FirstOrDefault() ?? typeof(bool);
                 var tcsGenType = tcsType.MakeGenericType(retType);
 
-                var context = new MethodContextInfo()
+                foreach (var method in methods)
                 {
-                    MethodInfo = methodInfo,
-                    ClassRoles = classRoles.ToArray(),
-                    MethodRoles = methodRoles.ToArray(),
-                    IsSync = single,
-                    SyncGroup = syncGroup,
-                    ScopeId = scopeId,
-                    ActionId = actionId,
-                    ParameterHash = methodHash,
-                };
+                    if (method.DeclaringType == typeof(object)) continue;
+
+                    var scopeAttr = method.DeclaringType.GetTypeInfo().GetCustomAttribute<ScopeAttribute>(true);
+                    var methodScopeAttr = method.GetCustomAttribute<ScopeAttribute>(true);
+                    if (methodScopeAttr != null)
+                        scopeAttr = methodScopeAttr;
+
+                    var actionAttr = method.GetCustomAttribute<ActionAttribute>(true);
+
+                    var scopeId = ResolveScopeId(type, method, scopeAttr);
+                    var actionId = ResolveActionId(type, method, actionAttr);
+
+                    var actionHash = TypeHasher.CreateMD5Hash(scopeId, actionId, parameterHash);
+
+                    var contextInfo = new MethodContextInfo()
+                    {
+                        MethodInfo = methodInfo,
+                        ClassRoles = classRoles.ToArray(),
+                        MethodRoles = methodRoles.ToArray(),
+                        IsSync = single,
+                        SyncGroup = syncGroup,
+                        ActionHash = new ByteArray(actionHash),
+                    };
 
 
-                var meta = new MethodContext()
-                {
-                    ContextInfo = context,
-                    TaskCompletionSourceType = tcsGenType,
-                    ArgumentIndexes = argumentIndexes.ToArray(),
-                    CancellationIndex = ctIndex,
-                };
+                    var context = new MethodContext()
+                    {
+                        ContextInfo = contextInfo,
+                        TaskCompletionSourceType = tcsGenType,
+                        ArgumentIndexes = argumentIndexes.ToArray(),
+                        CancellationIndex = ctIndex,
+                    };
 
-                metas.Add(meta);
+                    contexts[contextInfo.ActionHash] = context;
+                }
             }
 
-            return metas.ToArray();
+            return contexts.Select(m => m.Value).ToArray();
         }
 
-        protected virtual object ResolveScopeId(Type type, object scopeId)
+        protected virtual byte[] ResolveScopeId(Type type, MethodInfo methodInfo, ScopeAttribute scopeAttr)
         {
-            return scopeId ?? "";
+            return scopeAttr?.GetScopeId() ?? Encoding.UTF8.GetBytes(type.Name);
+        }
+
+        protected virtual byte[] ResolveActionId(Type type, MethodInfo methodInfo, ActionAttribute actionAttr)
+        {
+            return actionAttr?.GetActionId() ?? Encoding.UTF8.GetBytes(methodInfo.Name);
         }
 
         protected virtual T GetInterfaceAttribute<T>(Type objType, ref MethodInfo methodInfo, out Type interfaceType) where T : Attribute
@@ -197,7 +199,7 @@ namespace Borlay.Handling
             var groups = methodContexts.GroupBy(m => m.ContextInfo.MethodInfo.Name);
             foreach (var g in groups)
             {
-                var dict = g.ToDictionary(m => m.ContextInfo.ParameterHash);
+                var dict = g.ToDictionary(m => m.ContextInfo.ActionHash);
                 dictionary.Add(g.Key, dict);
             }
         }
@@ -224,9 +226,7 @@ namespace Borlay.Handling
         public bool IsSync { get; set; }
         public int? SyncGroup { get; set; }
 
-        public object ScopeId { get; set; }
-        public object ActionId { get; set; }
-        public ByteArray ParameterHash { get; set; }
+        public ByteArray ActionHash { get; set; }
     }
 
     public class MethodContext
