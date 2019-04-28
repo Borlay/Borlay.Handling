@@ -79,7 +79,7 @@ namespace Borlay.Handling
 
         public bool RegisterHandler(Type type, IMethodContextInfoProvider methodContextInfoProvider)
         {
-            var methods = methodContextInfoProvider.GetMethodContextInfo(type);
+            var methods = methodContextInfoProvider.GetMethodContextInfo(type).ToArray();
             return RegisterHandler(type, methods);
         }
 

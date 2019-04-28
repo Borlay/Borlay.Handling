@@ -15,11 +15,15 @@ namespace Borlay.Handling
     public interface ITypeContextProvider
     {
         TypeContext GetTypeContext(Type type);
+
+        IEnumerable<TypeContext> GetTypeContexts();
     }
 
     public interface IMethodContextInfoProvider
     {
-        MethodContextInfo[] GetMethodContextInfo(Type type);
+        IEnumerable<MethodContextInfo> GetMethodContextInfo(Type type);
+
+        IEnumerable<MethodContextInfo> GetMethodContextInfo();
     }
 
     [Resolve(IncludeBase = true, Singletone = true)]
@@ -34,9 +38,19 @@ namespace Borlay.Handling
             set => current = value;
         }
 
-        public virtual MethodContextInfo[] GetMethodContextInfo(Type type)
+        public virtual IEnumerable<MethodContextInfo> GetMethodContextInfo(Type type)
         {
-            return GetTypeContext(type).Methods.Select(t => t.ContextInfo).ToArray();
+            return GetTypeContext(type).Methods.Select(t => t.ContextInfo);
+        }
+
+        public virtual IEnumerable<MethodContextInfo> GetMethodContextInfo()
+        {
+            return GetTypeContexts().SelectMany(c => c.Methods.Select(t => t.ContextInfo));
+        }
+
+        public IEnumerable<TypeContext> GetTypeContexts()
+        {
+            return contexts.Select(c => c.Value);
         }
 
         public virtual TypeContext GetTypeContext(Type type)
@@ -45,7 +59,7 @@ namespace Borlay.Handling
                 return context;
 
             var methods = CreateMethodContext(type);
-            context = new TypeContext(methods);
+            context = new TypeContext(type, methods);
             contexts[type] = context;
             return context;
         }
@@ -203,8 +217,11 @@ namespace Borlay.Handling
 
         public MethodContext[] Methods { get; }
 
-        public TypeContext(params MethodContext[] methodContexts)
+        public Type Type { get; }
+
+        public TypeContext(Type type, params MethodContext[] methodContexts)
         {
+            this.Type = type;
             this.Methods = methodContexts;
             contexts = methodContexts.ToDictionary(m => m.ContextInfo.ActionHash);
         }
