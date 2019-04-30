@@ -392,36 +392,36 @@ namespace Borlay.Handling.Tests
 
 
     [Handler, Resolve(Singletone = true)]
-    [NameScope("")]
+    [Scope("")]
     public class HandlerSum
     {
         
 
-        [IdAction(0)]
+        [Action("0")]
         public string SumString(string arg)
         {
             return "sum" + arg;
         }
 
-        [IdAction(0)]
+        [Action("0")]
         public int SumZero()
         {
             return 1;
         }
 
-        [IdAction(0)]
+        [Action("0")]
         public int Sum(IntArgument intArgument)
         {
             return intArgument.Left + intArgument.Right;
         }
 
-        [IdAction(0)]
+        [Action("0")]
         public int SumDuo(IntArgument firstIntArgument, IntArgument secondIntArgument)
         {
             return firstIntArgument.Left + firstIntArgument.Right + secondIntArgument.Left + secondIntArgument.Right;
         }
 
-        [IdAction(0)]
+        [Action("0")]
         public int SumThree(IntArgument firstIntArgument, IntArgument secondIntArgument, ByteArgument byteArgument)
         {
             return firstIntArgument.Left + firstIntArgument.Right + secondIntArgument.Left + secondIntArgument.Right + byteArgument.Left + byteArgument.Right;
@@ -429,10 +429,10 @@ namespace Borlay.Handling.Tests
     }
 
     [Handler, Resolve]
-    [NameScope("")]
+    [Scope("")]
     public class HandlerMultiplyAsync
     {
-        [IdAction(1)]
+        [Action("1")]
         public async Task<int> MultiplyAsync(IntArgument intArgument, [Inject]CancellationToken cancellationToken)
         {
             if (cancellationToken == null)
@@ -444,11 +444,11 @@ namespace Borlay.Handling.Tests
 
     //[Role("Calculation")]
     [Handler, Resolve]
-    [NameScope("")]
+    [Scope("")]
     public class HandlerMinusAsyncWithRole
     {
         //[Role("Minus")]
-        [IdAction(2)]
+        [Action("2")]
         public async Task<int> MultiplyAsync(IntArgument intArgument, [Inject]CancellationToken cancellationToken)
         {
             if (cancellationToken == null)
@@ -461,11 +461,11 @@ namespace Borlay.Handling.Tests
 
     [Role("Calculation", "Admin")]
     [Handler, Resolve]
-    [NameScope("")]
+    [Scope("")]
     public class HandlerByteMinusAsyncWithManyRoles
     {
         [Role("Minus")]
-        [IdAction(2)]
+        [Action("2")]
         public async Task<int> MultiplyAsync(ByteArgument byteArgument, [Inject]CancellationToken cancellationToken)
         {
             if (cancellationToken == null)

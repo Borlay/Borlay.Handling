@@ -30,26 +30,26 @@ namespace Borlay.Handling.Tests
     [Handler]
     public interface IAddString
     {
-        [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
+        [Action("1")]
         Task<CalculatorResult> AddAsync(string argument);
     }
 
     [Resolve(Singletone = false )]
     [Handler]
-    [NameScope("")]
+    [Scope("")]
     public interface ICalculator //: IAddString
     {
 
-        [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
+        [Action("1")]
         Task<CalculatorResult> AddAsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken);
 
-        [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
+        [Action("1")]
         Task<CalculatorResult> AddAsync();
 
-        [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
+        [Action("1")]
         Task<CalculatorResult> AddAsync(CalculatorArgument argument, CalculatorArgument argument2, [Inject]CancellationToken cancellationToken);
 
-        [NameAction]
+        [Action]
         Task<CalculatorResult> Subsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken);
     }
 
@@ -58,7 +58,7 @@ namespace Borlay.Handling.Tests
     [Role("Merge")]
     public interface IMerge
     {
-        [NameAction]
+        [Action]
         Task<CalculatorResult> MergeAsync(CalculatorArgument argument, [Inject]CancellationToken cancellationToken);
     }
 
@@ -85,7 +85,7 @@ namespace Borlay.Handling.Tests
             return new CalculatorResult() { Result = argument.Left + argument.Right + calculatorParameter.First };
         }
 
-        [IdAction(1, CanBeCached = true, CacheReceivedResponse = true)]
+        [Action("1")]
         public async Task<CalculatorResult> AddAsync(string argument)
         {
             return new CalculatorResult() { Result = calculatorParameter.First + int.Parse(argument) };

@@ -143,10 +143,10 @@ namespace Borlay.Handling
 
                     var actionAttr = method.GetCustomAttribute<ActionAttribute>(true);
 
-                    var scopeId = ResolveScopeId(type, method, scopeAttr);
-                    var actionId = ResolveActionId(type, method, actionAttr);
+                    var scopeId = ResolveScope(type, method, scopeAttr);
+                    var actionId = ResolveAction(type, method, actionAttr);
 
-                    var actionHash = TypeHasher.CreateMD5Hash(scopeId, actionId, parameterHash);
+                    var actionHash = TypeHasher.CreateMD5Hash(Encoding.UTF8.GetBytes($"scope-{scopeId}:action-{actionId}"), parameterHash);
 
                     var contextInfo = new MethodContextInfo()
                     {
@@ -179,14 +179,14 @@ namespace Borlay.Handling
             return type.Name;
         }
 
-        protected virtual byte[] ResolveScopeId(Type type, MethodInfo methodInfo, ScopeAttribute scopeAttr)
+        protected virtual string ResolveScope(Type type, MethodInfo methodInfo, ScopeAttribute scopeAttr)
         {
-            return scopeAttr?.GetScopeId() ?? Encoding.UTF8.GetBytes(methodInfo.DeclaringType.Name);
+            return scopeAttr?.GetId() ?? methodInfo.DeclaringType.Name;
         }
 
-        protected virtual byte[] ResolveActionId(Type type, MethodInfo methodInfo, ActionAttribute actionAttr)
+        protected virtual string ResolveAction(Type type, MethodInfo methodInfo, ActionAttribute actionAttr)
         {
-            return actionAttr?.GetActionId() ?? Encoding.UTF8.GetBytes(methodInfo.Name);
+            return actionAttr?.GetId() ?? methodInfo.Name;
         }
 
         protected virtual T GetInterfaceAttribute<T>(Type objType, ref MethodInfo methodInfo, out Type interfaceType) where T : Attribute

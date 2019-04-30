@@ -1,19 +1,38 @@
-﻿using System;
+﻿using Borlay.Arrays;
+using System;
 using System.Collections.Generic;
-using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Borlay.Handling.Notations
 {
     [AttributeUsage(AttributeTargets.Method)]
-    public abstract class ActionAttribute : Attribute, IActionMeta
+    public class ActionAttribute : Attribute, IGetId
     {
-        public bool CanBeCached { get; set; } = false;
+        private readonly byte[] nameBytes;
 
-        public bool CacheReceivedResponse { get; set; } = false;
+        public string MethodName { get; }
 
-        public bool CacheSendedResponse { get; set; } = false;
+        public ActionAttribute([CallerMemberName] string methodName = "")
+        {
+            if (string.IsNullOrWhiteSpace(methodName))
+                throw new ArgumentNullException(nameof(methodName));
 
-        public abstract byte[] GetActionId();
+            this.MethodName = methodName.ToLower();
+
+            nameBytes = Encoding.UTF8.GetBytes(this.MethodName);
+            if (nameBytes.Length > Byte.MaxValue)
+                throw new ArgumentException("Method name is too long");
+        }
+
+        public string GetId()
+        {
+            return MethodName; //MethodName;
+        }
+    }
+
+    public interface IGetId
+    {
+        string GetId();
     }
 }
