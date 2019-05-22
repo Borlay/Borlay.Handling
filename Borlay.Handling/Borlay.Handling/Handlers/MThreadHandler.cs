@@ -87,7 +87,8 @@ namespace Borlay.Handling
                         if (requests.Length > argumentIndex)
                         {
                             var req = requests[argumentIndex];
-                            if (parameters[i].ParameterType.GetTypeInfo().IsAssignableFrom(req.GetType()))
+                            var typeInfo = parameters[i].ParameterType.GetTypeInfo();
+                            if (!typeInfo.IsClass || typeInfo.IsAssignableFrom(req.GetType()))
                             {
                                 arguments[i] = req;
                                 argumentIndex++;
